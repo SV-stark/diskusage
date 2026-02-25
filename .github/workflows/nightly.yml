@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - current
 
 jobs:
   build-and-release:
