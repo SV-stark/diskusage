@@ -21,4 +21,10 @@
 <resources>
     <drawable name="transparent">#00000000</drawable>
     <color name="almost_white">#CFFFFFFF</color>
+    <color name="pie_empty">#ff222222</color>
+
+    <!-- Material 3 base colors -->
+    <color name="color_primary">#6200ea</color>
+    <color name="color_secondary">#03dac6</color>
+    <color name="window_background">#121212</color>
 </resources>

@@ -1,7 +1,10 @@
 <resources>
-    <style name="Theme" parent="android:Theme.DeviceDefault">
+    <style name="Theme" parent="Theme.Material3.DayNight">
+        <item name="colorPrimary">@color/color_primary</item>
+        <item name="colorSecondary">@color/color_secondary</item>
+        <item name="android:windowBackground">@color/window_background</item>
     </style>
-    <style name="Theme.NoBackground" parent="Theme.AppCompat">
+    <style name="Theme.NoBackground" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">@null</item>
     </style>
 </resources>
