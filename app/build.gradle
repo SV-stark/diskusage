@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
 }
 
 android {
@@ -20,9 +21,6 @@ android {
         buildConfig true
         viewBinding false
         compose true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.11"
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
