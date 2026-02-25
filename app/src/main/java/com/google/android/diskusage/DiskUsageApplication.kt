@@ -1,6 +1,7 @@
 package com.google.android.diskusage
 
 import android.app.Application
+import com.google.android.material.color.DynamicColors
 import timber.log.Timber
 
 class DiskUsageApplication: Application() {
@@ -13,6 +14,7 @@ class DiskUsageApplication: Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        DynamicColors.applyToActivitiesIfAvailable(this)
         try {
             if (BuildConfig.DEBUG) {
                 Timber.plant(

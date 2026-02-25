@@ -22,6 +22,7 @@ import com.google.android.diskusage.filesystem.entity.FileSystemSpecial
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot
 import com.google.android.diskusage.filesystem.mnt.MountPoint
 import com.google.android.diskusage.utils.AppIconCache.getOrLoadBitmap
+import com.google.android.diskusage.utils.ThemeHelper
 import com.google.android.diskusage.utils.item
 import splitties.resources.styledColor
 import timber.log.Timber
@@ -171,6 +172,23 @@ class DiskUsageMenu(val diskusage: DiskUsage) {
         }
 
         menu.forEach { it.isVisible = false }
+
+        menu.item("Theme") {
+            val themes = arrayOf(ThemeHelper.THEME_SYSTEM, ThemeHelper.THEME_LIGHT, ThemeHelper.THEME_DARK, ThemeHelper.THEME_AMOLED)
+            val prefs = diskusage.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+            val currentTheme = prefs.getString(ThemeHelper.PREF_THEME, ThemeHelper.THEME_SYSTEM)
+            val checkedItem = themes.indexOf(currentTheme).takeIf { it >= 0 } ?: 0
+
+            AlertDialog.Builder(diskusage)
+                .setTitle("Select Theme")
+                .setSingleChoiceItems(themes, checkedItem) { dialog, which ->
+                    prefs.edit().putString(ThemeHelper.PREF_THEME, themes[which]).apply()
+                    ThemeHelper.applyTheme(diskusage)
+                    diskusage.recreate()
+                    dialog.dismiss()
+                }
+                .show()
+        }
 
         menu.item(R.string.action_about) {
             val binding =

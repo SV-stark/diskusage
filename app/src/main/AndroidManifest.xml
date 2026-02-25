@@ -34,7 +34,7 @@
             </intent-filter>
         </activity>
     <activity android:name=".ui.DiskUsage"
-        android:theme="@style/Theme.NoBackground"
+        android:theme="@style/Theme"
               android:hardwareAccelerated="false"
               android:windowSoftInputMode="adjustResize" android:exported="true">
     </activity>

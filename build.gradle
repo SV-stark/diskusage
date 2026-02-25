@@ -1,3 +1,7 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '2.2.0'
+}
+
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
     ext.kotlin_version = '2.0.0'
@@ -7,6 +11,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
         classpath 'com.android.tools.build:gradle:8.3.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
@@ -21,4 +26,9 @@ allprojects {
 
 tasks.register('clean', Delete) {
     delete rootProject.layout.buildDirectory
+}
+
+kotlin {
+    sourceSets.main.kotlin.srcDirs += 'src/main/java'
+    sourceSets.test.kotlin.srcDirs += 'src/test/java'
 }
