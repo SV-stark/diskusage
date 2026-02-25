@@ -7,12 +7,14 @@ android {
     compileSdk 34
     ndkVersion "25.2.9519653"
 
-    namespace "com.stark.diskusage"
+    namespace "com.google.android.diskusage"
 
     defaultConfig {
-        applicationId "com.stark.diskusage"
+        applicationId "com.google.android.diskusage"
         targetSdkVersion 34
         minSdk 21
+        versionCode 5001
+        versionName "5.0-alpha1"
     }
     buildFeatures {
         buildConfig true
