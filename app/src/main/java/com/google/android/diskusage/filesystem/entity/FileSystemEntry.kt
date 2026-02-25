@@ -347,11 +347,9 @@ open class FileSystemEntry(
         return path.toString()
     }
 
-    fun absolutePath(): String {
-        if (this is FileSystemRoot) {
-            return this.rootPath
-        }
-        return parent!!.absolutePath() + "/" + name
+    fun absolutePath(): String = when (this) {
+        is FileSystemRoot -> rootPath
+        else -> "${parent!!.absolutePath()}/$name"
     }
 
     fun depth(entry: FileSystemEntry): Int {

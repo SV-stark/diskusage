@@ -1,54 +1,61 @@
 package com.google.android.diskusage.ui
 
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import com.google.android.diskusage.R
 import com.google.android.diskusage.utils.AppHelper
 
 class DiskUsageViewModel : ViewModel() {
-    val toolbarActionButtonVisible = MutableLiveData(false)
+    private val _toolbarActionButtonVisible = MutableStateFlow(false)
+    val toolbarActionButtonVisible: StateFlow<Boolean> = _toolbarActionButtonVisible.asStateFlow()
 
-    val showButton = MutableLiveData(false)
+    private val _showButton = MutableStateFlow(false)
+    val showButton: StateFlow<Boolean> = _showButton.asStateFlow()
 
-    val rescanButton = MutableLiveData(false)
+    private val _rescanButton = MutableStateFlow(false)
+    val rescanButton: StateFlow<Boolean> = _rescanButton.asStateFlow()
 
-    val deleteButton = MutableLiveData(false)
+    private val _deleteButton = MutableStateFlow(false)
+    val deleteButton: StateFlow<Boolean> = _deleteButton.asStateFlow()
 
-    val rendererButtonTitle = MutableLiveData(AppHelper.appContext.getString(R.string.rederer))
+    private val _rendererButtonTitle = MutableStateFlow(AppHelper.appContext.getString(R.string.rederer))
+    val rendererButtonTitle: StateFlow<String> = _rendererButtonTitle.asStateFlow()
 
     fun showToolbarActionButton() {
-        toolbarActionButtonVisible.value = true
+        _toolbarActionButtonVisible.value = true
     }
 
     fun hideToolBarActionButton() {
-        toolbarActionButtonVisible.value = false
+        _toolbarActionButtonVisible.value = false
     }
 
     fun enableShowButton() {
-        showButton.value = true
+        _showButton.value = true
     }
 
     fun disableShowButton() {
-        showButton.value = false
+        _showButton.value = false
     }
 
     fun enableRescanButton() {
-        rescanButton.value = true
+        _rescanButton.value = true
     }
 
     fun disableRescanButton() {
-        rescanButton.value = false
+        _rescanButton.value = false
     }
 
     fun enableDeleteButton() {
-        deleteButton.value = true
+        _deleteButton.value = true
     }
 
     fun disableDeleteButton() {
-        deleteButton.value = false
+        _deleteButton.value = false
     }
 
     fun setRendererButtonTitle(title: String) {
-        rendererButtonTitle.value = title
+        _rendererButtonTitle.value = title
     }
 }

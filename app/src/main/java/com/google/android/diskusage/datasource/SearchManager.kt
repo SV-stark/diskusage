@@ -1,40 +1,28 @@
 package com.google.android.diskusage.datasource
 
+import androidx.lifecycle.lifecycleScope
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry.SearchInterruptedException
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot
 import com.google.android.diskusage.ui.DiskUsageMenu
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SearchManager(private val menu: DiskUsageMenu) {
-    private var finishedSearch: Search? = null
-    private var activeSearch: Search? = null
+    private var finishedSearch: SearchData? = null
+    private var activeSearchJob: Job? = null
     private lateinit var query: String
 
-    private inner class Search(
+    private data class SearchData(
         val query: String,
-        var baseRoot: FileSystemSuperRoot
-    ) : Thread() {
-        var newRoot: FileSystemSuperRoot? = null
-        override fun run() {
-            try {
-                val root = menu.masterRoot
-                newRoot = root?.filter(this.query, baseRoot.displayBlockSize) as FileSystemSuperRoot
-                if (isInterrupted) return
-                menu.diskusage.handler.post { searchFinished(this@Search) }
-            } catch (ignored: SearchInterruptedException) {
-            }
-        }
-    }
+        val newRoot: FileSystemSuperRoot?
+    )
 
     fun search(newQuery: String) {
         query = newQuery.lowercase()
-        activeSearch?.let {
-            if (newQuery.contains(it.query)) {
-                return
-            } else {
-                it.interrupt()
-                activeSearch = null
-            }
-        }
+        activeSearchJob?.cancel()
+        activeSearchJob = null
         startSearch()
     }
 
@@ -47,28 +35,35 @@ class SearchManager(private val menu: DiskUsageMenu) {
                 finishedSearch = null
             }
         }
-        if (baseRoot != null) {
-            val search = Search(query, baseRoot!!)
-            search.start()
-        } else {
-            menu.finishedSearch(null, null)
+        
+        val currentBaseRoot = baseRoot ?: return menu.finishedSearch(null, null)
+
+        activeSearchJob = menu.diskusage.lifecycleScope.launch {
+            try {
+                val currentQuery = query
+                val newRootResult = withContext(Dispatchers.Default) {
+                    val root = menu.masterRoot
+                    root?.filter(currentQuery, currentBaseRoot.displayBlockSize) as? FileSystemSuperRoot
+                }
+                
+                searchFinished(SearchData(currentQuery, newRootResult))
+            } catch (ignored: SearchInterruptedException) {
+            }
         }
     }
 
-    private fun searchFinished(search: Search) {
-        if (activeSearch === search) {
-            activeSearch = null
-        }
-        finishedSearch = search
-        if (query != search.query) {
+    private fun searchFinished(searchData: SearchData) {
+        activeSearchJob = null
+        finishedSearch = searchData
+        if (query != searchData.query) {
             startSearch()
         }
-        menu.finishedSearch(search.newRoot, search.query)
+        menu.finishedSearch(searchData.newRoot, searchData.query)
     }
 
     fun cancelSearch() {
-        activeSearch?.interrupt()
-        activeSearch = null
+        activeSearchJob?.cancel()
+        activeSearchJob = null
         finishedSearch = null
     }
 }

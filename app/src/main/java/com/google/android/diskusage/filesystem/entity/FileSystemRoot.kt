@@ -25,14 +25,8 @@ open class FileSystemRoot protected constructor(name: String?, val rootPath: Str
         if (pathWithSlash.startsWith(rootPathWithSlash)) {
             return getEntryByName(path.substring(rootPathWithSlash.length), true)
         }
-        val currentChildren = children ?: return null
-        for (s in currentChildren) {
-            if (s is FileSystemRoot) {
-                val e = s.getByAbsolutePath(path)
-                if (e != null) return e
-            }
-        }
-        return null
+        return children?.filterIsInstance<FileSystemRoot>()
+            ?.firstNotNullOfOrNull { it.getByAbsolutePath(path) }
     }
 
     companion object {

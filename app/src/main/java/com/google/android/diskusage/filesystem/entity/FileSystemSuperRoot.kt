@@ -35,22 +35,10 @@ class FileSystemSuperRoot(val displayBlockSize: Long) : FileSystemSpecial(null, 
     }
 
     fun getByAbsolutePath(path: String): FileSystemEntry? {
-        val currentChildren = children ?: return null
-        for (r in currentChildren) {
-            if (r !is FileSystemRoot) {
-                continue
-            }
-            val e = r.getByAbsolutePath(path)
-            if (e != null) {
-                return e
-            }
-        }
-        return null
+        return children?.filterIsInstance<FileSystemRoot>()
+            ?.firstNotNullOfOrNull { it.getByAbsolutePath(path) }
     }
 
-    fun getEntryByName(path: String, exactMatch: Boolean): FileSystemEntry? {
-        val currentChildren = children ?: return null
-        if (currentChildren.isEmpty()) return null
-        return currentChildren[0].getEntryByName(path, exactMatch)
-    }
+    fun getEntryByName(path: String, exactMatch: Boolean): FileSystemEntry? =
+        children?.firstOrNull()?.getEntryByName(path, exactMatch)
 }

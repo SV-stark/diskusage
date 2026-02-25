@@ -620,13 +620,15 @@ class FileSystemState(
         val root = children[0]
         val rootChildren = root.children ?: return
         for (e in rootChildren) {
-            if (e is FileSystemSystemSpace) {
-                systemSpace = e
-                numSpecialEntries++
-            }
-            if (e is FileSystemFreeSpace) {
-                numSpecialEntries++
-                freeSpace = e
+            when (e) {
+                is FileSystemSystemSpace -> {
+                    systemSpace = e
+                    numSpecialEntries++
+                }
+                is FileSystemFreeSpace -> {
+                    numSpecialEntries++
+                    freeSpace = e
+                }
             }
         }
     }
@@ -785,15 +787,9 @@ class FileSystemState(
         val currDepth = cursor.depth
         prepareMotion(eventTime)
 
-        var isSpecialCase = false
-        if (masterRoot.children != null && masterRoot.children!!.isNotEmpty()) {
-             if (entry === masterRoot.children!![0]) {
-                 isSpecialCase = true
-             }
-        }
+        val isSpecialCase = masterRoot.children?.getOrNull(0)?.let { entry === it } ?: false
 
         if (isSpecialCase || entry is FileSystemFreeSpace) {
-            //      Log.d("diskusage", "special case for " + entry.name);
             toggleZoomState()
             return
         }
@@ -806,9 +802,7 @@ class FileSystemState(
         if (!has_children) {
             //      Log.d("diskusage", "zoom file");
             fullZoom = false
-            if (targetViewTop == prevViewTop
-                && targetViewBottom == prevViewBottom
-            ) {
+            if (targetViewTop == prevViewTop && targetViewBottom == prevViewBottom) {
                 if (!warnOnFileSelect && entry !is FileSystemSystemSpace) {
                     mainThreadAction.warnOnFileSelect()
                     warnOnFileSelect = true

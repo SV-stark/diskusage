@@ -41,6 +41,7 @@ class DiskUsage : LoadableActivity() {
     private var pathToDelete: String? = null
     var menu = DiskUsageMenu(this)
     var rendererManager = RendererManager(this)
+    var removedPackage: FileSystemPackage? = null
 
     internal var afterLoadAction = ArrayList<Runnable>()
     private var isAppResumed = false
@@ -95,15 +96,15 @@ class DiskUsage : LoadableActivity() {
         super.onResume()
         isAppResumed = true
         rendererManager.onResume()
-        if (pkg_removed != null) {
-            val pkgName = pkg_removed!!.pkg
+        if (removedPackage != null) {
+            val pkgName = removedPackage!!.pkg
             val pm = packageManager
             try {
                 pm.getPackageInfo(pkgName, 0)
             } catch (e: PackageManager.NameNotFoundException) {
-                fileSystemState?.removeInRenderThread(pkg_removed)
+                fileSystemState?.removeInRenderThread(removedPackage!!)
             }
-            pkg_removed = null
+            removedPackage = null
         }
         LoadFiles(this, { root, isCached ->
             val currentState = FileSystemState(this@DiskUsage, root)
@@ -157,7 +158,7 @@ class DiskUsage : LoadableActivity() {
 
     fun viewPackage(pkg: FileSystemPackage) {
         packageViewer.viewPackage(pkg.pkg)
-        pkg_removed = pkg
+        removedPackage = pkg
     }
 
     internal fun continueDelete(path: String) {
@@ -174,17 +175,22 @@ class DiskUsage : LoadableActivity() {
         val fullPath = entry.absolutePath()
         Timber.d("Deletion requested for %s", path)
 
-        if (entry is FileSystemEntrySmall) {
-            toast("Delete directory instead")
-            return
-        }
-        if (entry.children.isNullOrEmpty()) {
-            if (entry is FileSystemPackage) {
-                pkg_removed = entry
-                BackgroundDelete.startDelete(this, entry)
+        when (entry) {
+            is FileSystemEntrySmall -> {
+                toast("Delete directory instead")
                 return
             }
+            is FileSystemPackage -> {
+                if (entry.children.isNullOrEmpty()) {
+                    removedPackage = entry
+                    BackgroundDelete.startDelete(this, entry)
+                    return
+                }
+            }
+            else -> {} // Continue handling
+        }
 
+        if (entry.children.isNullOrEmpty()) {
             AlertDialog.Builder(this)
                 .setTitle(
                     if (File(fullPath).isDirectory) getString(R.string.ask_to_delete_directory, path)
@@ -209,16 +215,19 @@ class DiskUsage : LoadableActivity() {
         var intent = Intent(Intent.ACTION_VIEW)
         intent.addCategory(Intent.CATEGORY_DEFAULT)
 
-        if (entry is FileSystemEntrySmall) {
-            entry = entry.parent
-        }
-        if (entry is FileSystemPackage) {
-            viewPackage(entry)
-            return
-        }
-        if (entry.parent is FileSystemPackage) {
-            viewPackage(entry.parent as FileSystemPackage)
-            return
+        when (entry) {
+            is FileSystemEntrySmall -> entry = entry.parent!!
+            is FileSystemPackage -> {
+                viewPackage(entry)
+                return
+            }
+            else -> {
+                val parent = entry.parent
+                if (parent is FileSystemPackage) {
+                    viewPackage(parent)
+                    return
+                }
+            }
         }
 
         val path = entry.absolutePath()
@@ -356,7 +365,6 @@ class DiskUsage : LoadableActivity() {
         menu.onRestoreInstanceState(inState)
     }
 
-    val handler = Handler()
 
     internal inner class MemoryClassDetected {
         fun maxHeap(): Int {
@@ -407,26 +415,25 @@ class DiskUsage : LoadableActivity() {
         }
     }
 
-    interface ProgressGenerator {
-        fun lastCreatedFile(): FileSystemEntry?
-        fun pos(): Long
-    }
-
-    internal fun makeProgressUpdater(scanner: ProgressGenerator, stats: FileSystemStats): Runnable {
-        return object : Runnable {
-            private var file: FileSystemEntry? = null
-            override fun run() {
-                val dialog = persistantState.loading
+    private fun startProgressUpdater(
+        lastFileProvider: () -> FileSystemEntry?,
+        posProvider: () -> Long,
+        stats: FileSystemStats
+    ): kotlinx.coroutines.Job {
+        return androidx.lifecycle.lifecycleScope.launch {
+            var file: FileSystemEntry? = null
+            while (kotlinx.coroutines.isActive) {
+                val dialog = persistentState.loading
                 if (dialog != null) {
                     dialog.setMax(stats.busyBlocks)
-                    val lastFile = scanner.lastCreatedFile()
+                    val lastFile = lastFileProvider()
 
                     if (lastFile !== file) {
-                        dialog.setProgress(scanner.pos(), lastFile)
+                        dialog.setProgress(posProvider(), lastFile)
                     }
                     file = lastFile
                 }
-                handler.postDelayed(this, 50)
+                kotlinx.coroutines.delay(50)
             }
         }
     }
@@ -438,25 +445,24 @@ class DiskUsage : LoadableActivity() {
         val heap = getMemoryQuota()
 
         var rootElement: FileSystemEntry
-        var progressUpdater: Runnable
         try {
             val scanner = NativeScanner(this, stats.blockSize, stats.busyBlocks, heap)
-            progressUpdater = makeProgressUpdater(object : ProgressGenerator {
-                override fun lastCreatedFile() = scanner.lastCreatedFile()
-                override fun pos() = scanner.pos()
-            }, stats)
-            handler.post(progressUpdater)
+            val progressJob = startProgressUpdater(
+                { scanner.lastCreatedFile() },
+                { scanner.pos() },
+                stats
+            )
             rootElement = scanner.scan(mountPoint)
-            handler.removeCallbacks(progressUpdater)
+            progressJob.cancel()
         } catch (e: RuntimeException) {
             val scanner = Scanner(20, stats.blockSize, stats.busyBlocks, heap)
-            progressUpdater = makeProgressUpdater(object : ProgressGenerator {
-                override fun lastCreatedFile() = scanner.lastCreatedFile()
-                override fun pos() = scanner.pos()
-            }, stats)
-            handler.post(progressUpdater)
+            val progressJob = startProgressUpdater(
+                { scanner.lastCreatedFile() },
+                { scanner.pos() },
+                stats
+            )
             rootElement = scanner.scan(LegacyFileImpl.createRoot(mountPoint.root))
-            handler.removeCallbacks(progressUpdater)
+            progressJob.cancel()
         }
 
         var entries = ArrayList<FileSystemEntry>()

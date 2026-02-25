@@ -1,28 +1,10 @@
-/*
- * DiskUsage - displays sdcard usage on android.
- * Copyright (C) 2008 Ivan Volosyuk
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- */
-
 package com.google.android.diskusage.filesystem
 
 import android.app.ProgressDialog
 import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
+import androidx.lifecycle.lifecycleScope
 import com.google.android.diskusage.R
 import com.google.android.diskusage.core.Scanner
 import com.google.android.diskusage.datasource.fast.LegacyFileImpl
@@ -30,6 +12,9 @@ import com.google.android.diskusage.filesystem.entity.FileSystemEntry
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage
 import com.google.android.diskusage.filesystem.mnt.MountPoint
 import com.google.android.diskusage.ui.DiskUsage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import splitties.resources.appStr
 import splitties.toast.longToast
 import splitties.toast.toast
@@ -40,7 +25,7 @@ import java.io.IOException
 class BackgroundDelete private constructor(
     private val diskUsage: DiskUsage,
     private val entry: FileSystemEntry
-) : Thread() {
+) {
 
     private var dialog: ProgressDialog? = null
     private val file: File
@@ -60,21 +45,20 @@ class BackgroundDelete private constructor(
         for (mountPoint in MountPoint.getMountPoints(diskUsage)) {
             if ((mountPoint.root + "/").startsWith("$deleteRoot/")) {
                 longToast("This delete operation will erase entire storage - canceled.")
-                // To safely exit init early without violating field initialization:
                 throw RuntimeException("Deletion canceled to prevent entire storage erasure")
             }
         }
 
         if (!file.exists()) {
             longToast(appStr(R.string.path_doesnt_exist, path))
-            diskUsage.fileSystemState.removeInRenderThread(entry)
+            diskUsage.fileSystemState?.removeInRenderThread(entry)
             throw RuntimeException("Path doesn't exist")
         }
 
         if (file.isFile) {
             if (file.delete()) {
                 toast(R.string.file_deleted)
-                diskUsage.fileSystemState.removeInRenderThread(entry)
+                diskUsage.fileSystemState?.removeInRenderThread(entry)
             } else {
                 toast(R.string.error_file_wasnt_deleted)
             }
@@ -100,7 +84,34 @@ class BackgroundDelete private constructor(
         progressDialog.setOnDismissListener { dialog = null }
         progressDialog.setOnCancelListener { dialog = null }
         progressDialog.show()
-        start()
+        
+        diskUsage.lifecycleScope.launch {
+            try {
+                val status = withContext(Dispatchers.IO) {
+                    deleteRecursively(file)
+                }
+                deletionStatus = status
+                
+                if (dialog != null) {
+                    try {
+                        dialog?.dismiss()
+                    } catch (e: Exception) {
+                        // ignore exception
+                    }
+                }
+                diskUsage.fileSystemState?.removeInRenderThread(entry)
+                if (deletionStatus != DELETION_SUCCESS) {
+                    withContext(Dispatchers.IO) {
+                        restore()
+                    }
+                    diskUsage.fileSystemState?.requestRepaint()
+                    diskUsage.fileSystemState?.requestRepaintGPU()
+                }
+                notifyUser()
+            } catch (e: Exception) {
+                Timber.e(e, "Error during deletion")
+            }
+        }
     }
 
     private fun uninstall(pkg: FileSystemPackage) {
@@ -110,42 +121,19 @@ class BackgroundDelete private constructor(
         diskUsage.startActivity(uninstallIntent)
     }
 
-    override fun run() {
-        deletionStatus = deleteRecursively(file)
-        // FIXME: use notification object when backgrounded
-        diskUsage.handler.post {
-            if (dialog != null) {
-                try {
-                    dialog?.dismiss()
-                } catch (e: Exception) {
-                    // ignore exception
-                }
-            }
-            diskUsage.fileSystemState.removeInRenderThread(entry)
-            if (deletionStatus != DELETION_SUCCESS) {
-                restore()
-                diskUsage.fileSystemState.requestRepaint()
-                diskUsage.fileSystemState.requestRepaintGPU()
-            }
-            notifyUser()
-        }
-    }
-
-    fun restore() {
+    private fun restore() {
         Timber.d("restore started for $path")
-        val mountPoint = MountPoint.getForKey(diskUsage, diskUsage.key!!)!!
-        val displayBlockSize = diskUsage.fileSystemState.masterRoot.displayBlockSize
+        val mountPoint = MountPoint.getForKey(diskUsage, diskUsage.key) ?: return
+        val displayBlockSize = diskUsage.fileSystemState?.masterRoot?.displayBlockSize ?: 512
         try {
             val newEntry = Scanner(
-                // FIXME: hacked allocatedBlocks and heap size
                 20, displayBlockSize, 0, 4
             ).scan(
-                // Original: DataSource.get().createLegacyScanFile
                 LegacyFileImpl.createRoot(mountPoint.root + "/" + path)
             )
             // FIXME: may be problems in case of two deletions
             entry.parent?.insert(newEntry!!, displayBlockSize)
-            diskUsage.fileSystemState.restore(newEntry!!)
+            diskUsage.fileSystemState?.restore(newEntry!!)
             Timber.d(
                 "restore: Restoring undeleted: %s %s",
                 newEntry.name, newEntry.sizeString()

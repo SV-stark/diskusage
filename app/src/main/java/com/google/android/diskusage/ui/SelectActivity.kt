@@ -23,9 +23,11 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -74,33 +76,7 @@ class SelectActivity : ComponentActivity() {
         }
     }
 
-    var handler: Handler = Handler(Looper.getMainLooper())
-    var checkForMountsUpdates: Runnable = object : Runnable {
-        override fun run() {
-            var reload = false
-            try {
-                val reader = IOHelper.procMountsReader
-                var line: String?
-                var checksum = 0
-                while ((reader.readLine().also { line = it }) != null) {
-                    checksum += line!!.length
-                }
-                reader.close()
-                if (checksum != RootMountPoint.checksum) {
-                    Timber.d("%s vs %s", checksum, RootMountPoint.checksum)
-                    reload = true
-                }
-            } catch (ignored: Throwable) {
-            }
-
-            if (reload) {
-                dialog?.hide()
-                MountPoint.reset()
-                makeDialog()
-            }
-            handler.postDelayed(this, 2000)
-        }
-    }
+    var mountsUpdateJob: Job? = null
 
 
     fun makeDialog() {
@@ -189,15 +165,39 @@ class SelectActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        //    ActionBar actionBar = getActionBar();
-        //    actionBar.setDisplayHomeAsUpEnabled(true);
         makeDialog()
-        handler.post(checkForMountsUpdates)
+        
+        mountsUpdateJob = lifecycleScope.launch {
+            while (kotlinx.coroutines.isActive) {
+                var reload = false
+                try {
+                    val reader = IOHelper.procMountsReader
+                    var line: String?
+                    var checksum = 0
+                    while ((reader.readLine().also { line = it }) != null) {
+                        checksum += line!!.length
+                    }
+                    reader.close()
+                    if (checksum != RootMountPoint.checksum) {
+                        Timber.d("%s vs %s", checksum, RootMountPoint.checksum)
+                        reload = true
+                    }
+                } catch (ignored: Throwable) {
+                }
+
+                if (reload) {
+                    dialog?.hide()
+                    MountPoint.reset()
+                    makeDialog()
+                }
+                delay(2000)
+            }
+        }
     }
 
     override fun onPause() {
         if (dialog?.isShowing == true) dialog?.dismiss()
-        handler.removeCallbacks(checkForMountsUpdates)
+        mountsUpdateJob?.cancel()
         super.onPause()
     }
 

@@ -13,6 +13,8 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.SearchView
 import androidx.core.view.forEach
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.google.android.diskusage.R
 
 import com.google.android.diskusage.datasource.SearchManager
@@ -137,37 +139,39 @@ class DiskUsageMenu(val diskusage: DiskUsage) {
                 diskusage.view(selectedEntity)
             }
         }.apply {
-            viewModel.showButton.observe(diskusage) {
-                isVisible = it
+            diskusage.lifecycleScope.launch {
+                viewModel.showButton.collect { isVisible = it }
             }
         }
 
         menu.item(R.string.button_rescan) {
             diskusage.rescan()
         }.apply {
-            viewModel.rescanButton.observe(diskusage) {
-                isVisible = it
+            diskusage.lifecycleScope.launch {
+                viewModel.rescanButton.collect { isVisible = it }
             }
         }
 
         menu.item(R.string.button_delete) {
             diskusage.askForDeletion(selectedEntity!!)
         }.apply {
-            viewModel.deleteButton.observe(diskusage) {
-                isVisible = it
+            diskusage.lifecycleScope.launch {
+                viewModel.deleteButton.collect { isVisible = it }
             }
         }
 
         menu.item(R.string.rederer) {
             diskusage.rendererManager.switchRenderer(masterRoot)
         }.apply {
-            viewModel.rendererButtonTitle.observe(diskusage) {
-                title = it
+            diskusage.lifecycleScope.launch {
+                viewModel.rendererButtonTitle.collect { title = it }
             }
         }
 
-        viewModel.toolbarActionButtonVisible.observe(diskusage) {
-            menu.forEach { item -> item.isVisible = it }
+        diskusage.lifecycleScope.launch {
+            viewModel.toolbarActionButtonVisible.collect {
+                menu.forEach { item -> item.isVisible = it }
+            }
         }
 
         menu.forEach { it.isVisible = false }
@@ -238,16 +242,13 @@ class DiskUsageMenu(val diskusage: DiskUsage) {
 
         viewModel.showToolbarActionButton()
 
-        val isGPU = diskusage.fileSystemState.isGPU
-        val title = if (isGPU) {
-            diskusage.getString(R.string.software_renderer)
-        } else {
-            diskusage.getString(R.string.hardware_renderer)
-        }
-        viewModel.setRendererButtonTitle(title)
+        val titleRes = if (diskusage.fileSystemState.isGPU) R.string.software_renderer else R.string.hardware_renderer
+        viewModel.setRendererButtonTitle(diskusage.getString(titleRes))
 
-        val view = !(selectedEntity === diskusage.fileSystemState.masterRoot.children[0]
-                || selectedEntity is FileSystemSpecial)
+        val isFirstRoot = selectedEntity === diskusage.fileSystemState.masterRoot.children?.getOrNull(0)
+        val isSpecial = selectedEntity is FileSystemSpecial
+        val view = !(isFirstRoot || isSpecial)
+
         if (view) {
             viewModel.enableRescanButton()
         } else {

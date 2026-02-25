@@ -4,9 +4,14 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Process
 import android.os.storage.StorageManager
+import androidx.lifecycle.lifecycleScope
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage
 import com.google.android.diskusage.ui.DiskUsage
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.IOException
 import java.util.ArrayList
@@ -27,10 +32,9 @@ class Apps2SDLoader(private val diskUsage: DiskUsage) {
         val installedApps = packageManager.getInstalledApplications(0)
         val packages = installedApps.map { it.packageName }.toSet()
 
-        val handler = diskUsage.handler
-        val progressUpdater = object : Runnable {
-            override fun run() {
-                val dialog = diskUsage.persistantState.loading
+        val progressJob: Job = diskUsage.lifecycleScope.launch {
+            while (isActive) {
+                val dialog = diskUsage.persistentState.loading
                 if (dialog != null) {
                     if (switchToSecondary) {
                         dialog.switchToSecondary()
@@ -43,10 +47,9 @@ class Apps2SDLoader(private val diskUsage: DiskUsage) {
                     }
                     dialog.setProgress(numLoadedPackages.toLong(), appName)
                 }
-                diskUsage.handler.postDelayed(this, 50)
+                delay(50)
             }
         }
-        handler.post(progressUpdater)
 
         for (pkg in packages) {
             Timber.d("app: $pkg")
@@ -82,7 +85,7 @@ class Apps2SDLoader(private val diskUsage: DiskUsage) {
 
         val result = entries.toTypedArray<FileSystemEntry>()
         Arrays.sort(result, FileSystemEntry.COMPARE)
-        handler.removeCallbacks(progressUpdater)
+        progressJob.cancel()
         return result
     }
 }
