@@ -22,7 +22,6 @@ import com.google.android.diskusage.BuildConfig
 import com.google.android.diskusage.R
 import com.google.android.diskusage.core.NativeScanner
 import com.google.android.diskusage.core.Scanner
-import com.google.android.diskusage.databinding.ActivityCommonBinding
 import com.google.android.diskusage.datasource.fast.LegacyFileImpl
 import com.google.android.diskusage.datasource.fast.StatFsSourceImpl
 import com.google.android.diskusage.filesystem.Apps2SDLoader
@@ -56,8 +55,16 @@ class DiskUsage : LoadableActivity() {
         super.onCreate(icicle)
         val viewModel = ViewModelProvider(this)[DiskUsageViewModel::class.java]
         Timber.d("DiskUsage.onCreate()")
-        val binding = ActivityCommonBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContent {
+            androidx.compose.material3.MaterialTheme {
+                androidx.compose.material3.Surface(
+                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.background
+                ) {
+                    androidx.compose.foundation.layout.Box(modifier = androidx.compose.ui.Modifier.fillMaxSize())
+                }
+            }
+        }
         if (com.google.android.diskusage.utils.ThemeHelper.isAmoledTheme(this)) {
             window.decorView.setBackgroundColor(android.graphics.Color.BLACK)
         }

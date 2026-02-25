@@ -8,14 +8,13 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Process
 import android.text.Html
-import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.SearchView
 import androidx.core.view.forEach
 import com.google.android.diskusage.R
-import com.google.android.diskusage.databinding.AboutDialogBinding
+
 import com.google.android.diskusage.datasource.SearchManager
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry
 import com.google.android.diskusage.filesystem.entity.FileSystemSpecial
@@ -191,13 +190,9 @@ class DiskUsageMenu(val diskusage: DiskUsage) {
         }
 
         menu.item(R.string.action_about) {
-            val binding =
-                AboutDialogBinding.inflate(
-                    LayoutInflater.from(
-                        diskusage
-                    ), null, false
-                )
-            binding.sourceCode.text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val tv = android.widget.TextView(diskusage)
+            tv.setPadding(32, 32, 32, 32)
+            tv.text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 Html.fromHtml(
                     diskusage.getString(
                         R.string.about_view_source_code,
@@ -214,23 +209,17 @@ class DiskUsageMenu(val diskusage: DiskUsage) {
                     )
                 )
             }
-            binding.icon.setImageBitmap(
-                getOrLoadBitmap(
-                    diskusage,
-                    diskusage.applicationInfo,
-                    Process.myUid() / 100000,
-                    diskusage.resources.getDimensionPixelSize(R.dimen.default_app_icon_size)
-                )
-            )
+            tv.movementMethod = android.text.method.LinkMovementMethod.getInstance()
+            var version = ""
             try {
-                binding.versionName.text = diskusage.packageManager.getPackageInfo(
-                    diskusage.packageName, 0
-                ).versionName
+                version = diskusage.packageManager.getPackageInfo(diskusage.packageName, 0).versionName
             } catch (e: PackageManager.NameNotFoundException) {
-                Timber.e(e, "Package '${diskusage.packageName}' not found")
+                Timber.e(e, "Package '\${diskusage.packageName}' not found")
             }
+            
             AlertDialog.Builder(diskusage)
-                .setView(binding.root)
+                .setTitle("DiskUsage \$version")
+                .setView(tv)
                 .show()
         }
         updateMenu()

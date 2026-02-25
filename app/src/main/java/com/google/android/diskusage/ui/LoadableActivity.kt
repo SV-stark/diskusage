@@ -1,3 +1,22 @@
+/*
+ * DiskUsage - displays sdcard usage on android.
+ * Copyright (C) 2008-2011 Ivan Volosyuk
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
 package com.google.android.diskusage.ui
 
 import android.app.Activity
@@ -20,12 +39,6 @@ import java.util.TreeMap
 abstract class LoadableActivity : AppCompatActivity() {
     var pkg_removed: FileSystemPackage? = null
 
-    class PersistantActivityState {
-        var loading: ScanProgressDialog? = null
-        var root: FileSystemSuperRoot? = null
-        var afterLoad: AfterLoad? = null
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         FileSystemEntry.setupStrings(this)
@@ -38,111 +51,119 @@ abstract class LoadableActivity : AppCompatActivity() {
 
     val persistantState: PersistantActivityState
         get() {
-            val key = this.key
-            var state = persistantActivityState[key]
+            val currentKey = key
+
+            var state = persistantActivityState[currentKey]
             if (state != null) return state
             state = PersistantActivityState()
-            persistantActivityState[key] = state
+            persistantActivityState[currentKey] = state
             return state
         }
 
-    fun LoadFiles(activity: LoadableActivity, runAfterLoad: AfterLoad, force: Boolean) {
+    fun loadFiles(
+        activity: LoadableActivity,
+        runAfterLoad: AfterLoad?, force: Boolean
+    ) {
+        val scanRunning: Boolean
         val state = persistantState
-        Timber.d("LoadableActivity.LoadFiles(), afterLoad = %s", runAfterLoad)
+        Timber.d("LoadableActivity.loadFiles(), afterLoad = %s", runAfterLoad)
 
         if (force) {
             state.root = null
         }
 
         if (state.root != null) {
-            runAfterLoad.run(state.root, true)
+            runAfterLoad?.run(state.root!!, true)
             return
         }
 
-        val scanRunning = state.afterLoad != null
+        scanRunning = state.afterLoad != null
         state.afterLoad = runAfterLoad
-        Timber.d("LoadFiles: Created new progress dialog")
+        Timber.d("loadFiles: Created new progress dialog")
         state.loading = ScanProgressDialog(activity)
 
-        val thisLoading = state.loading!!
-        thisLoading.setOnCancelListener {
+        val thisLoading = state.loading
+        state.loading?.setOnCancelListener {
             state.loading = null
             activity.finish()
         }
-        thisLoading.setCancelable(true)
-        thisLoading.max = 1
-        thisLoading.setMessage(activity.getString(R.string.scaning_directories))
-        thisLoading.show()
+        thisLoading?.setCancelable(true)
+        //    thisLoading.setIndeterminate(true);
+        thisLoading?.max = 1
+        thisLoading?.setMessage(activity.getString(R.string.scaning_directories))
+        thisLoading?.show()
 
         if (scanRunning) return
         val handler = Handler(Looper.getMainLooper())
 
-        Thread {
-            var error: String? = null
-            try {
-                Timber.d("LoadFiles: Running scan for %s", key)
-                val newRoot = scan()
+        object : Thread() {
+            override fun run() {
+                var error: String? = null
+                try {
+                    Timber.d("loadFiles: Running scan for %s", this@LoadableActivity.key)
+                    val newRoot = scan()
 
-                handler.post {
-                    if (state.loading == null) {
-                        Timber.d("LoadFiles: No dialog, doesn't run afterLoad")
-                        state.afterLoad = null
-                        if (newRoot.children[0].children != null) {
-                            Timber.d("LoadFiles: No dialog, updating root still")
-                            state.root = newRoot
+                    handler.post {
+                        if (state.loading == null) {
+                            Timber.d("loadFiles: No dialog, doesn't run afterLoad")
+                            state.afterLoad = null
+                            if (newRoot.children != null && newRoot.children!!.isNotEmpty() && newRoot.children!![0].children != null) {
+                                Timber.d("loadFiles: No dialog, updating root still")
+                                state.root = newRoot
+                            }
+                            return@post
                         }
-                        return@post
-                    }
-                    if (state.loading?.isShowing == true) state.loading?.dismiss()
-                    state.loading = null
-                    val afterLoadCopy = state.afterLoad
-                    state.afterLoad = null
-                    Timber.d("LoadFiles: Dismissed dialog")
+                        if (state.loading?.isShowing == true) state.loading?.dismiss()
+                        state.loading = null
+                        val afterLoadCopy = state.afterLoad
+                        state.afterLoad = null
+                        Timber.d("loadFiles: Dismissed dialog")
 
-                    if (newRoot.children[0].children == null) {
-                        Timber.d("LoadFiles: Empty card")
-                        handleEmptySDCard(activity, runAfterLoad)
-                        return@post
+                        if (newRoot.children == null || newRoot.children!!.isEmpty() || newRoot.children!![0].children == null) {
+                            Timber.d("loadFiles: Empty card")
+                            handleEmptySDCard(activity, runAfterLoad)
+                            return@post
+                        }
+                        state.root = newRoot
+                        pkg_removed = null
+                        Timber.d("loadFiles: Run afterLoad = %s", afterLoadCopy)
+                        afterLoadCopy?.run(state.root!!, false)
                     }
-                    state.root = newRoot
-                    pkg_removed = null
-                    Timber.d("LoadFiles: Run afterLoad = %s", afterLoadCopy)
-                    afterLoadCopy?.run(state.root, false)
+                    return
+                } catch (e: OutOfMemoryError) {
+                    state.root = null
+                    state.afterLoad = null
+                    Timber.d("loadFiles: Out of memory!")
+                    handler.post {
+                        if (state.loading == null) return@post
+                        state.loading?.dismiss()
+                        handleOutOfMemory(activity)
+                    }
+                    return
+                } catch (e: InterruptedException) {
+                    error = e.javaClass.name + ":" + e.message
+                    Timber.e(e, "loadFiles: Native error")
+                } catch (e: IOException) {
+                    error = e.javaClass.name + ":" + e.message
+                    Timber.e(e, "loadFiles: Native error")
+                } catch (e: RuntimeException) {
+                    error = e.javaClass.name + ":" + e.message
+                    Timber.e(e, "loadFiles: Native error")
+                } catch (e: StackOverflowError) {
+                    error = "Filesystem is damaged."
                 }
-                return@Thread
-            } catch (e: OutOfMemoryError) {
+                val finalError = error
                 state.root = null
                 state.afterLoad = null
-                Timber.d("LoadFiles: Out of memory!")
+                Timber.d("loadFiles: Exception in scan!")
                 handler.post {
                     if (state.loading == null) return@post
                     state.loading?.dismiss()
-                    handleOutOfMemory(activity)
+                    AlertDialog.Builder(activity)
+                        .setTitle(finalError)
+                        .setOnCancelListener { activity.finish() }
+                        .show()
                 }
-                return@Thread
-            } catch (e: InterruptedException) {
-                error = e.javaClass.name + ":" + e.message
-                Timber.e(e, "LoadFiles: Native error")
-            } catch (e: IOException) {
-                error = e.javaClass.name + ":" + e.message
-                Timber.e(e, "LoadFiles: Native error")
-            } catch (e: RuntimeException) {
-                error = e.javaClass.name + ":" + e.message
-                Timber.e(e, "LoadFiles: Native error")
-            } catch (e: StackOverflowError) {
-                error = "Filesystem is damaged."
-            }
-            val finalError = error
-            state.root = null
-            state.afterLoad = null
-            Timber.d("LoadFiles: Exception in scan!")
-            handler.post {
-                if (state.loading == null) return@post
-                state.loading?.dismiss()
-                AlertDialog.Builder(activity)
-                    .setTitle(finalError)
-                    .setOnCancelListener { activity.finish() }
-                    .show()
             }
         }.start()
     }
@@ -157,26 +178,35 @@ abstract class LoadableActivity : AppCompatActivity() {
         super.onPause()
     }
 
-    private fun handleEmptySDCard(activity: LoadableActivity, afterLoad: AfterLoad?) {
+    private fun handleEmptySDCard(
+        activity: LoadableActivity,
+        afterLoad: AfterLoad?
+    ) {
         AlertDialog.Builder(activity)
             .setTitle(activity.getString(R.string.empty_or_missing_sdcard))
-            .setPositiveButton(activity.getString(R.string.button_rescan)) { _, _ ->
+            .setPositiveButton(
+                activity.getString(R.string.button_rescan)
+            ) { dialog, which ->
                 if (afterLoad == null) throw RuntimeException("LoadableActivity.handleEmptySDCard(): afterLoad is empty")
-                LoadFiles(activity, afterLoad, true)
+                loadFiles(activity, afterLoad, true)
             }
-            .setOnCancelListener { activity.finish() }
-            .create().show()
+            .setOnCancelListener { activity.finish() }.create().show()
+    }
+
+    class PersistantActivityState {
+        var loading: ScanProgressDialog? = null
+        var root: FileSystemSuperRoot? = null
+        var afterLoad: AfterLoad? = null
     }
 
     companion object {
         private val persistantActivityState: MutableMap<String, PersistantActivityState> = TreeMap()
 
-        @JvmStatic
         fun resetStoredStates() {
             persistantActivityState.clear()
         }
 
-        @JvmStatic
+        // FIXME: use it wisely
         fun forceCleanup(): Boolean {
             var success = false
             for (state in persistantActivityState.values) {
@@ -190,10 +220,10 @@ abstract class LoadableActivity : AppCompatActivity() {
 
         private fun handleOutOfMemory(activity: Activity) {
             try {
+                // Can fail if the main window is already closed.
                 AlertDialog.Builder(activity)
                     .setTitle(activity.getString(R.string.out_of_memory))
-                    .setOnCancelListener { activity.finish() }
-                    .create().show()
+                    .setOnCancelListener { activity.finish() }.create().show()
             } catch (t: Throwable) {
                 toast("DiskUsage is out of memory. Sorry.")
             }

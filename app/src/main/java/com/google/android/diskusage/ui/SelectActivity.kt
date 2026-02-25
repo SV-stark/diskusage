@@ -1,3 +1,22 @@
+/*
+ * DiskUsage - displays sdcard usage on android.
+ * Copyright (C) 2008-2011 Ivan Volosyuk
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
 package com.google.android.diskusage.ui
 
 import android.app.AlertDialog
@@ -6,24 +25,29 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import com.google.android.diskusage.R
-import com.google.android.diskusage.databinding.ActivityCommonBinding
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry
 import com.google.android.diskusage.filesystem.mnt.MountPoint
 import com.google.android.diskusage.filesystem.mnt.RootMountPoint
 import com.google.android.diskusage.utils.DeviceHelper
 import com.google.android.diskusage.utils.IOHelper
 import timber.log.Timber
+import java.io.BufferedReader
 import java.util.ArrayList
 import java.util.TreeMap
 
-class SelectActivity : AppCompatActivity() {
+class SelectActivity : ComponentActivity() {
     private var dialog: AlertDialog? = null
-    private val bundles: MutableMap<String, Bundle> = TreeMap()
-    private val actionList = ArrayList<Runnable>()
+    var bundles: MutableMap<String, Bundle?> = TreeMap()
+    var actionList: ArrayList<Runnable> = ArrayList()
     private var expandRootMountPoints = false
-    private val handler = Handler(Looper.getMainLooper())
 
     private abstract inner class AbstractUsageAction : Runnable {
         fun runAction(key: String, viewer: Class<*>) {
@@ -50,17 +74,18 @@ class SelectActivity : AppCompatActivity() {
         }
     }
 
-    private val checkForMountsUpdates = object : Runnable {
+    var handler: Handler = Handler(Looper.getMainLooper())
+    var checkForMountsUpdates: Runnable = object : Runnable {
         override fun run() {
             var reload = false
             try {
-                val reader = IOHelper.getProcMountsReader()
+                val reader = IOHelper.procMountsReader
+                var line: String?
                 var checksum = 0
-                reader.useLines { lines ->
-                    for (line in lines) {
-                        checksum += line.length
-                    }
+                while ((reader.readLine().also { line = it }) != null) {
+                    checksum += line!!.length
                 }
+                reader.close()
                 if (checksum != RootMountPoint.checksum) {
                     Timber.d("%s vs %s", checksum, RootMountPoint.checksum)
                     reload = true
@@ -77,19 +102,21 @@ class SelectActivity : AppCompatActivity() {
         }
     }
 
+
     fun makeDialog() {
         val options = ArrayList<String>()
         actionList.clear()
 
+        //    PortableFile[] fileDirs = DataSource.get().getExternalFilesDirs(this);
         for (mountPoint in MountPoint.getMountPoints(this)) {
             options.add(mountPoint.title)
             actionList.add(DiskUsageAction(mountPoint))
         }
 
-        if (DeviceHelper.isDeviceRooted()) {
+        if (DeviceHelper.isDeviceRooted) {
             val prefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE)
             val ignoreList = prefs.all
-            if (ignoreList.isNotEmpty()) {
+            if (ignoreList.keys.isNotEmpty()) {
                 val ignores = ignoreList.keys
                 for (mountPoint in RootMountPoint.getRootedMountPoints(this)) {
                     if (ignores.contains(mountPoint.root)) continue
@@ -117,27 +144,53 @@ class SelectActivity : AppCompatActivity() {
         val optionsArray = options.toTypedArray()
 
         dialog = AlertDialog.Builder(this)
-            .setItems(optionsArray) { _, which -> actionList[which].run() }
+            .setItems(
+                optionsArray
+            ) { dialog, which -> actionList[which].run() }
             .setTitle(R.string.ask_view)
-            .setOnCancelListener { finish() }
-            .create()
-
+            .setOnCancelListener { dialog -> finish() }.create()
+        /*try {
+      if (debugDataSourceBridge != null) {
+        dialog.getListView().setOnItemLongClickListener(
+            new OnItemLongClickListener() {
+          @Override
+          public boolean onItemLongClick(
+              AdapterView<?> arg0, View arg1, int arg2, long arg3) {
+            debugUnhidden = true;
+            dialog.hide();
+            makeDialog();
+            return true;
+          }
+        });
+      }
+    } catch (Throwable t) {
+      // api 3
+    }*/
         dialog?.show()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        com.google.android.diskusage.utils.ThemeHelper.applyTheme(this)
         super.onCreate(savedInstanceState)
         FileSystemEntry.setupStrings(this)
-        val binding = ActivityCommonBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        if (com.google.android.diskusage.utils.ThemeHelper.isAmoledTheme(this)) {
-            window.decorView.setBackgroundColor(android.graphics.Color.BLACK)
+        
+        setContent {
+            MaterialTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    Box(modifier = Modifier.fillMaxSize())
+                }
+            }
         }
+        //    ActionBar bar = getActionBar();
+        //    bar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM | ActionBar.DISPLAY_USE_LOGO);
     }
 
     override fun onResume() {
         super.onResume()
+        //    ActionBar actionBar = getActionBar();
+        //    actionBar.setDisplayHomeAsUpEnabled(true);
         makeDialog()
         handler.post(checkForMountsUpdates)
     }
@@ -153,7 +206,7 @@ class SelectActivity : AppCompatActivity() {
         if (data == null) return
         val state = data.getBundleExtra(DiskUsage.STATE_KEY)
         val key = data.getStringExtra(DiskUsage.KEY_KEY)
-        if (key != null && state != null) {
+        if (key != null) {
             bundles[key] = state
         }
     }
@@ -161,7 +214,9 @@ class SelectActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         for ((key, value) in bundles) {
-            outState.putBundle(key, value)
+            if (value != null) {
+                outState.putBundle(key, value)
+            }
         }
         val keys = bundles.keys.toTypedArray()
         outState.putStringArray(BUNDLE_KEYS, keys)
@@ -172,10 +227,7 @@ class SelectActivity : AppCompatActivity() {
         val keys = savedInstanceState.getStringArray(BUNDLE_KEYS)
         if (keys != null) {
             for (key in keys) {
-                val bundle = savedInstanceState.getBundle(key)
-                if (bundle != null) {
-                    bundles[key] = bundle
-                }
+                bundles[key] = savedInstanceState.getBundle(key)
             }
         }
     }
