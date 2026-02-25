@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import com.google.android.diskusage.R
 import com.google.android.diskusage.utils.AppHelper
 
+import com.google.android.diskusage.filesystem.entity.FileSystemPackage
+
 class DiskUsageViewModel : ViewModel() {
     private val _toolbarActionButtonVisible = MutableStateFlow(false)
     val toolbarActionButtonVisible: StateFlow<Boolean> = _toolbarActionButtonVisible.asStateFlow()
@@ -58,4 +60,8 @@ class DiskUsageViewModel : ViewModel() {
     fun setRendererButtonTitle(title: String) {
         _rendererButtonTitle.value = title
     }
+
+    // Tracks a package that was sent to the system uninstall screen.
+    // Stored in the ViewModel so it survives activity rotation.
+    var removedPackage: FileSystemPackage? = null
 }

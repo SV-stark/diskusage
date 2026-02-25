@@ -14,23 +14,23 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.IOException
-import java.util.ArrayList
 import java.util.Arrays
 
 class Apps2SDLoader(private val diskUsage: DiskUsage) {
-    private var lastAppName: CharSequence = ""
+    // @Volatile ensures single-writer/single-reader visibility without a lock.
+    // The IO thread writes; the progress coroutine on the main thread reads.
+    @Volatile private var lastAppName: CharSequence = ""
     private var switchToSecondary = true
     private var numLoadedPackages = 0
 
     @Throws(Throwable::class)
     fun load(blockSize: Long): Array<FileSystemEntry> {
         val storageStatsManager = diskUsage.getSystemService(Context.STORAGE_STATS_SERVICE) as StorageStatsManager
-        val entries = ArrayList<FileSystemEntry>()
+        val entries = mutableListOf<FileSystemEntry>()
         val packageManager = diskUsage.applicationContext.packageManager
 
         // FIX: Getting installed applications is much faster than queryUsageStats
-        val installedApps = packageManager.getInstalledApplications(0)
-        val packages = installedApps.map { it.packageName }.toSet()
+        val packages = packageManager.getInstalledApplications(0).map { it.packageName }.toSet()
 
         val progressJob: Job = diskUsage.lifecycleScope.launch {
             while (isActive) {
@@ -41,11 +41,7 @@ class Apps2SDLoader(private val diskUsage: DiskUsage) {
                         switchToSecondary = false
                     }
                     dialog.setMax(packages.size.toLong())
-                    val appName: CharSequence
-                    synchronized(this@Apps2SDLoader) {
-                        appName = lastAppName
-                    }
-                    dialog.setProgress(numLoadedPackages.toLong(), appName)
+                    dialog.setProgress(numLoadedPackages.toLong(), lastAppName)
                 }
                 delay(50)
             }
@@ -55,16 +51,14 @@ class Apps2SDLoader(private val diskUsage: DiskUsage) {
             Timber.d("app: $pkg")
             try {
                 val metadata = packageManager.getApplicationInfo(pkg, PackageManager.GET_META_DATA)
-                val appName = metadata.loadLabel(packageManager).toString()
-                synchronized(this.lastAppName) {
-                    lastAppName = appName
-                }
+                // Volatile write — visible to progress coroutine on next read
+                lastAppName = metadata.loadLabel(packageManager).toString()
                 val stats = storageStatsManager.queryStatsForPackage(
                     StorageManager.UUID_DEFAULT, pkg, Process.myUserHandle()
                 )
                 Timber.d("stats: ${stats.appBytes} ${stats.dataBytes}")
                 val p = FileSystemPackage(
-                    appName,
+                    lastAppName.toString(),
                     pkg,
                     stats.appBytes,
                     stats.dataBytes,
@@ -83,7 +77,7 @@ class Apps2SDLoader(private val diskUsage: DiskUsage) {
             }
         }
 
-        val result = entries.toTypedArray<FileSystemEntry>()
+        val result = entries.toTypedArray()
         Arrays.sort(result, FileSystemEntry.COMPARE)
         progressJob.cancel()
         return result

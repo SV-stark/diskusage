@@ -4,7 +4,6 @@ import android.app.ProgressDialog
 import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
-import androidx.lifecycle.lifecycleScope
 import com.google.android.diskusage.R
 import com.google.android.diskusage.core.Scanner
 import com.google.android.diskusage.datasource.fast.LegacyFileImpl
@@ -12,7 +11,9 @@ import com.google.android.diskusage.filesystem.entity.FileSystemEntry
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage
 import com.google.android.diskusage.filesystem.mnt.MountPoint
 import com.google.android.diskusage.ui.DiskUsage
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import splitties.resources.appStr
@@ -22,6 +23,14 @@ import timber.log.Timber
 import java.io.File
 import java.io.IOException
 
+/**
+ * Handles background deletion of files/directories.
+ *
+ * The actual IO deletion runs in GlobalScope (not lifecycleScope) so that
+ * the file deletion cannot be cancelled if the user rotates the screen or
+ * temporarily pauses the activity. UI updates (dialog dismissal, repaints)
+ * always run on the Main dispatcher via withContext.
+ */
 class BackgroundDelete private constructor(
     private val diskUsage: DiskUsage,
     private val entry: FileSystemEntry
@@ -33,8 +42,6 @@ class BackgroundDelete private constructor(
 
     @Volatile
     private var cancelDeletion = false
-    private var backgroundDeletion = false
-    private var deletionStatus = DELETION_IN_PROGRESS
     private var numDeletedDirectories = 0
     private var numDeletedFiles = 0
 
@@ -42,6 +49,7 @@ class BackgroundDelete private constructor(
         path = entry.path2()
         val deleteRoot = entry.absolutePath()
         file = File(deleteRoot)
+
         for (mountPoint in MountPoint.getMountPoints(diskUsage)) {
             if ((mountPoint.root + "/").startsWith("$deleteRoot/")) {
                 longToast("This delete operation will erase entire storage - canceled.")
@@ -64,61 +72,53 @@ class BackgroundDelete private constructor(
             }
             throw RuntimeException("File deleted")
         }
-        
+
         val progressDialog = ProgressDialog(diskUsage)
         dialog = progressDialog
         progressDialog.setMessage(appStr(R.string.deleting_path, path))
         progressDialog.isIndeterminate = true
         progressDialog.setButton(
             DialogInterface.BUTTON_POSITIVE, diskUsage.getString(R.string.button_background)
-        ) { d, _ ->
-            background()
-            d.dismiss()
-        }
+        ) { d, _ -> d.dismiss() }
         progressDialog.setButton(
             DialogInterface.BUTTON_NEGATIVE, diskUsage.getString(android.R.string.cancel)
         ) { d, _ ->
-            cancel()
+            cancelDeletion = true
             d.dismiss()
         }
         progressDialog.setOnDismissListener { dialog = null }
         progressDialog.setOnCancelListener { dialog = null }
         progressDialog.show()
-        
-        diskUsage.lifecycleScope.launch {
-            try {
-                val status = withContext(Dispatchers.IO) {
-                    deleteRecursively(file)
-                }
-                deletionStatus = status
-                
-                if (dialog != null) {
-                    try {
-                        dialog?.dismiss()
-                    } catch (e: Exception) {
-                        // ignore exception
-                    }
-                }
+
+        startDeletion()
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    private fun startDeletion() {
+        // GlobalScope ensures deletion survives activity pause/rotation.
+        // All UI side-effects are marshalled back to Dispatchers.Main.
+        GlobalScope.launch(Dispatchers.IO) {
+            val status = deleteRecursively(file)
+
+            withContext(Dispatchers.Main) {
+                try { dialog?.dismiss() } catch (_: Exception) {}
+
                 diskUsage.fileSystemState?.removeInRenderThread(entry)
-                if (deletionStatus != DELETION_SUCCESS) {
-                    withContext(Dispatchers.IO) {
-                        restore()
-                    }
+
+                if (status != DELETION_SUCCESS) {
+                    withContext(Dispatchers.IO) { restore() }
                     diskUsage.fileSystemState?.requestRepaint()
                     diskUsage.fileSystemState?.requestRepaintGPU()
                 }
-                notifyUser()
-            } catch (e: Exception) {
-                Timber.e(e, "Error during deletion")
+
+                notifyUser(status)
             }
         }
     }
 
     private fun uninstall(pkg: FileSystemPackage) {
-        val pkg_name = pkg.pkg
-        val packageURI = Uri.parse("package:$pkg_name")
-        val uninstallIntent = Intent(Intent.ACTION_DELETE, packageURI)
-        diskUsage.startActivity(uninstallIntent)
+        val packageURI = Uri.parse("package:${pkg.pkg}")
+        diskUsage.startActivity(Intent(Intent.ACTION_DELETE, packageURI))
     }
 
     private fun restore() {
@@ -126,85 +126,47 @@ class BackgroundDelete private constructor(
         val mountPoint = MountPoint.getForKey(diskUsage, diskUsage.key) ?: return
         val displayBlockSize = diskUsage.fileSystemState?.masterRoot?.displayBlockSize ?: 512
         try {
-            val newEntry = Scanner(
-                20, displayBlockSize, 0, 4
-            ).scan(
+            val newEntry = Scanner(20, displayBlockSize, 0, 4).scan(
                 LegacyFileImpl.createRoot(mountPoint.root + "/" + path)
             )
-            // FIXME: may be problems in case of two deletions
             entry.parent?.insert(newEntry!!, displayBlockSize)
             diskUsage.fileSystemState?.restore(newEntry!!)
-            Timber.d(
-                "restore: Restoring undeleted: %s %s",
-                newEntry.name, newEntry.sizeString()
-            )
+            Timber.d("restore: Restoring undeleted: %s %s", newEntry.name, newEntry.sizeString())
         } catch (e: IOException) {
             Timber.d("Failed to restore")
         }
     }
 
-    fun notifyUser() {
-        Timber.d(
-            "notifyUser: Delete: status = %s directories %s files %s",
-            deletionStatus, numDeletedDirectories, numDeletedFiles
-        )
-
-        when (deletionStatus) {
-            DELETION_SUCCESS -> {
-                longToast(
-                    appStr(
-                        R.string.deleted_n_directories_and_n_files,
-                        numDeletedDirectories, numDeletedFiles
-                    )
-                )
-            }
-            DELETION_CANCELED -> {
-                longToast(
-                    appStr(
-                        R.string.deleted_n_directories_and_files_and_canceled,
-                        numDeletedDirectories, numDeletedFiles
-                    )
-                )
-            }
-            else -> {
-                longToast(
-                    appStr(
-                        R.string.deleted_n_directories_and_n_files_and_failed,
-                        numDeletedDirectories, numDeletedFiles
-                    )
-                )
-            }
+    private fun notifyUser(status: Int) {
+        Timber.d("notifyUser: Delete: status=%s dirs=%s files=%s", status, numDeletedDirectories, numDeletedFiles)
+        when (status) {
+            DELETION_SUCCESS -> longToast(
+                appStr(R.string.deleted_n_directories_and_n_files, numDeletedDirectories, numDeletedFiles)
+            )
+            DELETION_CANCELED -> longToast(
+                appStr(R.string.deleted_n_directories_and_files_and_canceled, numDeletedDirectories, numDeletedFiles)
+            )
+            else -> longToast(
+                appStr(R.string.deleted_n_directories_and_n_files_and_failed, numDeletedDirectories, numDeletedFiles)
+            )
         }
     }
 
-    fun background() {
-        backgroundDeletion = true
-    }
-
-    fun cancel() {
-        cancelDeletion = true
-    }
-
-    fun deleteRecursively(directory: File): Int {
+    private fun deleteRecursively(directory: File): Int {
         if (cancelDeletion) return DELETION_CANCELED
         val isDirectory = directory.isDirectory
         if (isDirectory) {
             val files = directory.listFiles() ?: return DELETION_FAILED
-            for (value in files) {
-                val status = deleteRecursively(value)
+            for (child in files) {
+                val status = deleteRecursively(child)
                 if (status != DELETION_SUCCESS) return status
             }
         }
-
-        val success = directory.delete()
-        if (success) {
-            if (isDirectory)
-                numDeletedDirectories++
-            else
-                numDeletedFiles++
-            return DELETION_SUCCESS
+        return if (directory.delete()) {
+            if (isDirectory) numDeletedDirectories++ else numDeletedFiles++
+            DELETION_SUCCESS
         } else {
-            return DELETION_FAILED
+            DELETION_FAILED
         }
     }
 
@@ -212,14 +174,13 @@ class BackgroundDelete private constructor(
         private const val DELETION_SUCCESS = 0
         private const val DELETION_FAILED = 1
         private const val DELETION_CANCELED = 2
-        private const val DELETION_IN_PROGRESS = 3
 
         @JvmStatic
         fun startDelete(diskUsage: DiskUsage, entry: FileSystemEntry) {
             try {
                 BackgroundDelete(diskUsage, entry)
-            } catch (e: RuntimeException) {
-                // Ignore initialization aborts
+            } catch (_: RuntimeException) {
+                // Ignore initialization aborts (file already gone, path safety check, etc.)
             }
         }
     }

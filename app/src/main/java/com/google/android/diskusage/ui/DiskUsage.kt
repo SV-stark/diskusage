@@ -41,7 +41,7 @@ class DiskUsage : LoadableActivity() {
     private var pathToDelete: String? = null
     var menu = DiskUsageMenu(this)
     var rendererManager = RendererManager(this)
-    var removedPackage: FileSystemPackage? = null
+    // removedPackage is held in the ViewModel so it survives configuration changes
 
     internal var afterLoadAction = ArrayList<Runnable>()
     private var isAppResumed = false
@@ -50,11 +50,13 @@ class DiskUsage : LoadableActivity() {
         get() = _key!!
     private var _key: String? = null
     private val memoryClass = MemoryClassDetected()
+    lateinit var viewModel: DiskUsageViewModel
 
     override fun onCreate(icicle: Bundle?) {
         com.google.android.diskusage.utils.ThemeHelper.applyTheme(this)
         super.onCreate(icicle)
         val viewModel = ViewModelProvider(this)[DiskUsageViewModel::class.java]
+        this.viewModel = viewModel
         Timber.d("DiskUsage.onCreate()")
         setContent {
             androidx.compose.material3.MaterialTheme {
@@ -96,15 +98,16 @@ class DiskUsage : LoadableActivity() {
         super.onResume()
         isAppResumed = true
         rendererManager.onResume()
-        if (removedPackage != null) {
-            val pkgName = removedPackage!!.pkg
+        val pkg = viewModel.removedPackage
+        if (pkg != null) {
+            val pkgName = pkg.pkg
             val pm = packageManager
             try {
                 pm.getPackageInfo(pkgName, 0)
             } catch (e: PackageManager.NameNotFoundException) {
-                fileSystemState?.removeInRenderThread(removedPackage!!)
+                fileSystemState?.removeInRenderThread(pkg)
             }
-            removedPackage = null
+            viewModel.removedPackage = null
         }
         LoadFiles(this, { root, isCached ->
             val currentState = FileSystemState(this@DiskUsage, root)
@@ -158,7 +161,7 @@ class DiskUsage : LoadableActivity() {
 
     fun viewPackage(pkg: FileSystemPackage) {
         packageViewer.viewPackage(pkg.pkg)
-        removedPackage = pkg
+        viewModel.removedPackage = pkg
     }
 
     internal fun continueDelete(path: String) {
