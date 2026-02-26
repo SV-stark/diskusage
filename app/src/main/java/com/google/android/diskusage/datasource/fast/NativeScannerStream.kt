@@ -3,6 +3,7 @@ package com.google.android.diskusage.datasource.fast
 import com.google.android.diskusage.utils.AppHelper.appContext
 import com.google.android.diskusage.utils.DeviceHelper.isDeviceRooted
 import org.jetbrains.annotations.Contract
+import timber.log.Timber
 import java.io.IOException
 import java.io.InputStream
 
@@ -37,7 +38,15 @@ class NativeScannerStream(private val process: Process) :
 
     companion object Factory {
         private const val LIBSCAN = "libscan.so"
-        private val libscanPath = "${appContext.applicationInfo.nativeLibraryDir}/${LIBSCAN}"
+
+        private fun getLibscanPath(): String? {
+            return try {
+                appContext.applicationInfo?.nativeLibraryDir?.let { "${it}/${LIBSCAN}" }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to get native library path")
+                null
+            }
+        }
 
         @JvmStatic
         @Contract("_, _ -> new")
@@ -49,6 +58,11 @@ class NativeScannerStream(private val process: Process) :
         @Contract("_, _ -> new")
         @Throws(IOException::class, InterruptedException::class)
         private fun runScanner(root: String, rootRequired: Boolean): NativeScannerStream {
+            val libscanPath = getLibscanPath()
+            if (libscanPath == null) {
+                throw IOException("Native library path not available")
+            }
+            
             val process = if (!(rootRequired && isDeviceRooted())) {
                 Runtime.getRuntime().exec(arrayOf(libscanPath, root))
             } else {
@@ -57,11 +71,14 @@ class NativeScannerStream(private val process: Process) :
                         Runtime.getRuntime().exec(arrayOf(su))
                     }.getOrNull()
                 }.also {
-                    it.outputStream.use { o ->
+                    it?.outputStream?.use { o ->
                         o.write("$libscanPath $root".toByteArray())
                         o.flush()
                     }
                 }
+            }
+            if (process == null) {
+                throw IOException("Failed to start native scanner process")
             }
             return NativeScannerStream(process)
         }

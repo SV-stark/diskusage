@@ -455,16 +455,30 @@ class DiskUsage : LoadableActivity() {
             rootElement = scanner.scan(mountPoint)!!
             progressJob.cancel()
         } catch (e: RuntimeException) {
-            val scanner = Scanner(20, stats.blockSize, stats.busyBlocks, heap)
-            val progressJob = startProgressUpdater(
-                { scanner.lastCreatedFile() },
-                { scanner.pos() },
-                stats
-            )
-            rootElement = scanner.scan(LegacyFileImpl.createRoot(mountPoint.root))!!
-            progressJob.cancel()
+            Timber.e(e, "NativeScanner failed with RuntimeException, falling back to Java Scanner")
+            rootElement = scanWithJavaScanner(mountPoint, stats)
+        } catch (e: IOException) {
+            Timber.e(e, "NativeScanner failed with IOException, falling back to Java Scanner")
+            rootElement = scanWithJavaScanner(mountPoint, stats)
         }
 
+        return finishScan(rootElement, mountPoint, stats)
+    }
+
+    private fun scanWithJavaScanner(mountPoint: MountPoint, stats: FileSystemStats): FileSystemEntry {
+        val heap = getMemoryQuota()
+        val scanner = Scanner(20, stats.blockSize, stats.busyBlocks, heap)
+        val progressJob = startProgressUpdater(
+            { scanner.lastCreatedFile() },
+            { scanner.pos() },
+            stats
+        )
+        val rootElement = scanner.scan(LegacyFileImpl.createRoot(mountPoint.root))!!
+        progressJob.cancel()
+        return rootElement
+    }
+
+    private fun finishScan(rootElement: FileSystemEntry, mountPoint: MountPoint, stats: FileSystemStats): FileSystemSuperRoot {
         var entries = ArrayList<FileSystemEntry>()
 
         rootElement.children?.let { children ->
