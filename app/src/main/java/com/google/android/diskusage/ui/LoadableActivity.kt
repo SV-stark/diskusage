@@ -42,7 +42,8 @@ import java.util.TreeMap
 
 abstract class LoadableActivity : AppCompatActivity() {
     var pkg_removed: FileSystemPackage? = null
-    protected val handler = Handler(Looper.getMainLooper())
+    @Suppress("MemberVisibilityCanBePrivate")
+    internal val handler = Handler(Looper.getMainLooper())
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)

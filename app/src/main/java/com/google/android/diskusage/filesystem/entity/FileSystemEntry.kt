@@ -373,10 +373,10 @@ open class FileSystemEntry(
     fun findEntry(maxDepth: Int, offset: Long): FileSystemEntry {
         var currOffset: Long = 0
         var entry = this
-        var children0 = children
+        val children0 = children ?: return this
 
         for (depth in 0 until maxDepth) {
-            if (children0 == null) break
+            if (children0.isEmpty()) break
             val nchildren = children0.size
             for (c in 0 until nchildren) {
                 val e = children0[c]
@@ -387,8 +387,8 @@ open class FileSystemEntry(
                 }
 
                 entry = e
-                children0 = e.children
-                if (children0 == null) return entry
+                val eChildren = e.children
+                if (eChildren == null) return entry
                 break
             }
         }
