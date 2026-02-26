@@ -99,7 +99,7 @@ class DiskUsage : LoadableActivity() {
             val pkgName = pkg.pkg
             val pm = packageManager
             try {
-                pm.getPackageInfo(pkgName, 0)
+                pm.getPackageInfo(pkgName, PackageManager.GET_META_DATA)
             } catch (e: PackageManager.NameNotFoundException) {
                 fileSystemState?.removeInRenderThread(pkg)
             }

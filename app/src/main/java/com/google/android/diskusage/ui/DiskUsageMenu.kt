@@ -196,27 +196,15 @@ class DiskUsageMenu(val diskusage: DiskUsage) {
         menu.item(R.string.action_about) {
             val tv = android.widget.TextView(diskusage)
             tv.setPadding(32, 32, 32, 32)
-            tv.text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                Html.fromHtml(
-                    diskusage.getString(
-                        R.string.about_view_source_code,
-                        "<b><a href=\"https://github.com/IvanVolosyuk/diskusage\">GitHub</a></b>"
-                    ),
-                    Html.FROM_HTML_MODE_LEGACY
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                Html.fromHtml(
-                    diskusage.getString(
-                        R.string.about_view_source_code,
-                        "<b><a href=\"https://github.com/IvanVolosyuk/diskusage\">GitHub</a></b>"
-                    )
-                )
-            }
+            val htmlText = diskusage.getString(
+                R.string.about_view_source_code,
+                "<b><a href=\"https://github.com/IvanVolosyuk/diskusage\">GitHub</a></b>"
+            )
+            tv.text = Html.fromHtml(htmlText, Html.FROM_HTML_MODE_LEGACY)
             tv.movementMethod = android.text.method.LinkMovementMethod.getInstance()
             var version = ""
             try {
-                version = diskusage.packageManager.getPackageInfo(diskusage.packageName, 0).versionName
+                version = diskusage.packageManager.getPackageInfo(diskusage.packageName, PackageManager.GET_META_DATA).versionName
             } catch (e: PackageManager.NameNotFoundException) {
                 Timber.e(e, "Package '\${diskusage.packageName}' not found")
             }

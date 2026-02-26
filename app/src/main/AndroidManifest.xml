@@ -22,8 +22,7 @@
                  android:allowTaskReparenting="true"
                  android:launchMode="singleTop"
                  android:theme="@style/Theme"
-                 android:hardwareAccelerated="true"
-                 android:requestLegacyExternalStorage="true">
+                 android:hardwareAccelerated="true">
         <activity android:name=".ui.SelectActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
