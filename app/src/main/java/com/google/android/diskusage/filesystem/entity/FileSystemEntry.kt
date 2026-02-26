@@ -40,7 +40,7 @@ open class FileSystemEntry(
 ) {
 
     fun hasChildren(): Boolean {
-        return children != null && children!!.isNotEmpty()
+        return children?.isNotEmpty() == true
     }
 
     var encodedSize: Long = 0
@@ -166,10 +166,10 @@ open class FileSystemEntry(
     fun copy(): FileSystemEntry {
         if (Thread.interrupted()) throw SearchInterruptedException()
         val copy = create()
-        if (this.children != null) {
-            val childrenCopy = arrayOfNulls<FileSystemEntry>(this.children!!.size)
-            for (i in this.children!!.indices) {
-                val childCopy = this.children!![i].copy()
+        this.children?.let { childrenArray ->
+            val childrenCopy = arrayOfNulls<FileSystemEntry>(childrenArray.size)
+            for (i in childrenArray.indices) {
+                val childCopy = childrenArray[i].copy()
                 childrenCopy[i] = childCopy
                 childCopy.parent = copy
             }
@@ -181,17 +181,17 @@ open class FileSystemEntry(
     }
 
     fun filterChildren(pattern: CharSequence, blockSize: Long): FileSystemEntry? {
-        if (children == null) return null
+        val childrenArray = children ?: return null
         val filtered_children = ArrayList<FileSystemEntry>()
 
-        for (child in this.children!!) {
+        for (child in childrenArray) {
             val childCopy = child.filter(pattern, blockSize)
             if (childCopy != null) {
                 filtered_children.add(childCopy)
             }
         }
         if (filtered_children.size == 0) return null
-        val childrenArray = filtered_children.toTypedArray()
+        val childrenArrayResult = filtered_children.toTypedArray()
         Arrays.sort(childrenArray, COMPARE)
         val copy = create()
         copy.children = childrenArray
@@ -206,7 +206,8 @@ open class FileSystemEntry(
     }
 
     open fun filter(pattern: CharSequence?, blockSize: Long): FileSystemEntry? {
-        if (pattern != null && name!!.lowercase().contains(pattern)) {
+        val entryName = name
+        if (pattern != null && entryName != null && entryName.lowercase().contains(pattern)) {
             return copy()
         }
         return filterChildren(pattern ?: "", blockSize)
@@ -228,16 +229,20 @@ open class FileSystemEntry(
 
     val next: FileSystemEntry
         get() {
-            val index = parent!!.getIndexOf(this)
-            if (index + 1 == parent!!.children!!.size) return this
-            return parent!!.children!![index + 1]
+            val parentEntry = parent ?: throw RuntimeException("Parent is null")
+            val index = parentEntry.getIndexOf(this)
+            val parentChildren = parentEntry.children ?: return this
+            if (index + 1 == parentChildren.size) return this
+            return parentChildren[index + 1]
         }
 
     val prev: FileSystemEntry
         get() {
-            val index = parent!!.getIndexOf(this)
+            val parentEntry = parent ?: throw RuntimeException("Parent is null")
+            val index = parentEntry.getIndexOf(this)
             if (index == 0) return this
-            return parent!!.children!![index - 1]
+            val parentChildren = parentEntry.children ?: return this
+            return parentChildren[index - 1]
         }
 
     private fun getOrCreateDrawingCache(): DrawingCache {
@@ -319,8 +324,9 @@ open class FileSystemEntry(
 
     fun toTitleString(): String {
         val sizeString0 = sizeString()
-        return if (children != null && children!!.isNotEmpty()) {
-            String.format(dir_name_size_num_dirs!!, name, sizeString0, children!!.size)
+        val childrenArray = children
+        return if (childrenArray != null && childrenArray.isNotEmpty()) {
+            String.format(dir_name_size_num_dirs!!, name, sizeString0, childrenArray.size)
         } else if (sizeInBlocks == 0L) {
             String.format(dir_empty!!, name)
         } else {
@@ -349,7 +355,7 @@ open class FileSystemEntry(
 
     fun absolutePath(): String = when (this) {
         is FileSystemRoot -> rootPath
-        else -> "${parent!!.absolutePath()}/$name"
+        else -> "${parent?.absolutePath()}/$name"
     }
 
     fun depth(entry: FileSystemEntry): Int {
@@ -371,9 +377,9 @@ open class FileSystemEntry(
 
         for (depth in 0 until maxDepth) {
             if (children0 == null) break
-            val nchildren = children0!!.size
+            val nchildren = children0.size
             for (c in 0 until nchildren) {
-                val e = children0!![c]
+                val e = children0[c]
                 val size = e.sizeForRendering
                 if (currOffset + size < offset) {
                     currOffset += size
@@ -412,7 +418,8 @@ open class FileSystemEntry(
     }
 
     fun remove(blockSize: Long) {
-        val children0 = parent!!.children
+        val parentEntry = parent ?: return
+        val children0 = parentEntry.children
         if (children0 != null) {
             val len = children0.size
             for (i in 0 until len) {
@@ -422,9 +429,9 @@ open class FileSystemEntry(
                 System.arraycopy(children0, 0, newChildren, 0, i)
                 System.arraycopy(children0, i + 1, newChildren, i, len - i - 1)
                 @Suppress("UNCHECKED_CAST")
-                parent!!.children = newChildren as Array<FileSystemEntry>
+                parentEntry.children = newChildren as Array<FileSystemEntry>
 
-                var parent0 = parent
+                var parent0: FileSystemEntry? = parentEntry
 
                 val blocks = sizeInBlocks
 
@@ -440,11 +447,12 @@ open class FileSystemEntry(
     }
 
     fun insert(newEntry: FileSystemEntry, blockSize: Long) {
-        val children0 = arrayOfNulls<FileSystemEntry>((children?.size ?: 0) + 1)
-        if (children != null) {
-            System.arraycopy(children!!, 0, children0, 0, children!!.size)
+        val currentChildren = children
+        val children0 = arrayOfNulls<FileSystemEntry>((currentChildren?.size ?: 0) + 1)
+        if (currentChildren != null) {
+            System.arraycopy(currentChildren, 0, children0, 0, currentChildren.size)
         }
-        children0[(children?.size ?: 0)] = newEntry
+        children0[currentChildren?.size ?: 0] = newEntry
         @Suppress("UNCHECKED_CAST")
         children = children0 as Array<FileSystemEntry>
         newEntry.parent = this
@@ -1018,18 +1026,19 @@ open class FileSystemEntry(
     }
 
     private fun validate0() {
-        if (parent != null) {
-            parent!!.getIndexOf(this)
+        val parentEntry = parent
+        if (parentEntry != null) {
+            parentEntry.getIndexOf(this)
             validateRecursive()
-            parent!!.validate0()
+            parentEntry.validate0()
             return
         }
         validateRecursive()
     }
 
     private fun validateRecursive() {
-        if (children == null) return
-        for (child in children!!) {
+        val childrenArray = children ?: return
+        for (child in childrenArray) {
             if (child.parent !== this)
                 throw RuntimeException("corrupted: " + this.path2() + " <> " + child.name)
             child.validateRecursive()

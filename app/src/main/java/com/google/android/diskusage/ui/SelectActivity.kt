@@ -183,7 +183,8 @@ class SelectActivity : ComponentActivity() {
                         Timber.d("%s vs %s", checksum, RootMountPoint.checksum)
                         reload = true
                     }
-                } catch (ignored: Throwable) {
+                } catch (e: Throwable) {
+                    Timber.w(e, "Failed to read checksum file")
                 }
 
                 if (reload) {

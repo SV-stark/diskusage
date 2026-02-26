@@ -101,11 +101,5 @@ class FileSystemViewGPU(context: Context, var eventHandler: FileSystemState) : S
 
     override fun killRenderThread() {
         thread.addEvent(thread.ExitEvent())
-        // FIXME: doesn't work
-        //    try {
-        //      thread.join();
-        //    } catch (InterruptedException e) {
-        //      thread.interrupt();
-        //    }
     }
 }

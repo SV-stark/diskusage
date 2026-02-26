@@ -440,10 +440,7 @@ class RenderingThread(
     }
 
     fun getOrInitCurrentBitmapMap(): BitmapMap {
-        if (currentBitmapMap == null) {
-            currentBitmapMap = BitmapMap()
-        }
-        return currentBitmapMap!!
+        return currentBitmapMap ?: BitmapMap().also { currentBitmapMap = it }
     }
 
     fun hasReusableBitmap(): Boolean {
@@ -693,8 +690,6 @@ class RenderingThread(
     override fun sizeChanged(gl: GL10?, width: Int, height: Int) {
         if (gl == null) return
         Timber.d("***** Surface Size Changed *****")
-        //    FileSystemEntry.elementWidth = 100;// FIXME??;
-        //    FileSystemEntry.fontSize = 20; // FIXME
         eventHandler.layout(true, 0, 0, width, height, width, height)
         // Init projection
 

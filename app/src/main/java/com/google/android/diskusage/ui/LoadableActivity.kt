@@ -23,6 +23,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CancellationException
@@ -41,7 +42,12 @@ import java.util.TreeMap
 
 abstract class LoadableActivity : AppCompatActivity() {
     var pkg_removed: FileSystemPackage? = null
-    val handler = Handler()
+    protected val handler = Handler(Looper.getMainLooper())
+
+    override fun onDestroy() {
+        handler.removeCallbacksAndMessages(null)
+        super.onDestroy()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -196,7 +202,8 @@ abstract class LoadableActivity : AppCompatActivity() {
             persistentActivityState.clear()
         }
 
-        // FIXME: use it wisely
+        // Cleans up cached filesystem states to free memory
+        // Only cleans up states that are not currently being used for loading
         fun forceCleanup(): Boolean {
             var success = false
             for (state in persistentActivityState.values) {

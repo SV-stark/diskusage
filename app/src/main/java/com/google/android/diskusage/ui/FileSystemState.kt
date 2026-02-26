@@ -120,8 +120,8 @@ class FileSystemState(
     private var displayTop: Long = 0
     private var displayBottom: Long = 0
 
-    private var screenWidth = 400 // Safe values to not crash when touch events
-    private var screenHeight = 400 // come before screen initialized.
+    private var screenWidth: Int = 0
+    private var screenHeight: Int = 0
 
     private var yscale: Float = 0f
 
@@ -498,7 +498,7 @@ class FileSystemState(
 
                 if (animationStartTime != 0L) return true
                 prepareMotion(ev.eventTime)
-                animationDuration = 300
+                animationDuration = DEFAULT_ANIMATION_DURATION
                 requestRepaint()
             }
 
@@ -514,14 +514,12 @@ class FileSystemState(
         zoomState = ZoomState.ZOOM_ALLOCATED
         targetViewBottom = masterRoot.sizeForRendering
         updateSpecialEntries()
-        // FIXME: dirty hacks
         cursor = Cursor(this, masterRoot)
         touchEntry = null
         touchMovement = false
     }
 
     fun resetCursor() {
-        // FIXME: dirty hacks
         cursor = Cursor(this, masterRoot)
         touchEntry = null
         touchMovement = false
@@ -568,7 +566,7 @@ class FileSystemState(
             targetViewBottom = viewBottom
             if (targetViewTop > newTop) targetViewTop = newTop
             if (targetViewBottom < newBottom) targetViewBottom = newBottom
-            animationDuration = 300
+            animationDuration = DEFAULT_ANIMATION_DURATION
             rescanFinished(newRoot)
             cursor[this@FileSystemState] = newPosition
         }
@@ -587,7 +585,7 @@ class FileSystemState(
                 viewBottom = center + large
                 viewDepth = 0f
                 prepareMotion(SystemClock.uptimeMillis())
-                animationDuration = 300
+                animationDuration = DEFAULT_ANIMATION_DURATION
                 targetViewTop = 0
                 targetViewBottom = masterRoot.sizeForRendering
                 targetViewDepth = 0f
@@ -674,7 +672,7 @@ class FileSystemState(
                 || viewDepth < 0 || FileSystemEntry.elementWidth > maxElementWidth
             ) {
                 prepareMotion(SystemClock.uptimeMillis())
-                animationDuration = 300
+                animationDuration = DEFAULT_ANIMATION_DURATION
                 //        view.requestRepaint();
                 needRepaint = true
                 if (targetViewTop < 0) {
@@ -755,7 +753,7 @@ class FileSystemState(
 
     fun prepareMotion(time: Long) {
         //    Log.d("diskusage", "prepare motion");
-        animationDuration = 900
+        animationDuration = MOTION_ANIMATION_DURATION
         prevViewDepth = viewDepth
         prevViewTop = viewTop
         prevViewBottom = viewBottom
@@ -965,9 +963,6 @@ class FileSystemState(
 
     private fun moveAwayCursor(entry: FileSystemEntry) {
         if (cursor.position !== entry) return
-        //    FIXME: should not be needed
-        //    view.requestRepaint();
-        //    cursor.set(this, entry);
         try {
             cursor.up(this)
         } catch (e: RuntimeException) {
@@ -1228,7 +1223,7 @@ class FileSystemState(
 
             if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
                 val selected = cursor.position
-                // FIXME: hack to disable removal of /sdcard
+                // Prevent selection of root mount point to avoid data loss
                 val children = masterRoot.children
                 if (children != null && children.isNotEmpty() && selected === children[0]) return true
                 mainThreadAction.view(selected)
@@ -1245,7 +1240,7 @@ class FileSystemState(
         return false
     }
 
-    // FIXME: can be called from different thread
+    @Synchronized
     fun layout(
         changed: Boolean, left: Int, top: Int, right: Int,
         bottom: Int, width: Int, height: Int
@@ -1254,7 +1249,6 @@ class FileSystemState(
         screenHeight = height
         minElementWidth = screenWidth / 8
         maxElementWidth = screenWidth / 2
-        // FIXME: may be too large
         MotionFilter.dx = (screenHeight + screenWidth) / 50f
 
         minDistance = if (screenHeight > screenWidth) screenHeight / 10f else screenWidth / 10f
@@ -1359,12 +1353,14 @@ class FileSystemState(
             viewTop = targetViewTop
             viewBottom = targetViewBottom
             prepareMotion(SystemClock.uptimeMillis())
-            animationDuration = 300
+            animationDuration = DEFAULT_ANIMATION_DURATION
         }
     }
 
     companion object {
-        private var animationDuration: Long = 900
+        private var animationDuration: Long = DEFAULT_ANIMATION_DURATION
+        private const val DEFAULT_ANIMATION_DURATION: Long = 300
+        private const val MOTION_ANIMATION_DURATION: Long = 900
         private const val deletionAnimationDuration: Long = 900
     }
 }

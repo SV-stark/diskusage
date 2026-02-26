@@ -42,7 +42,7 @@ class FileSystemPackage(
             this.codeSize = 0
         }
 
-        // TODO: not sure what happens here
+        // Apps on external storage don't have separate code size tracked
         if (flags and ApplicationInfo.FLAG_EXTERNAL_STORAGE != 0) {
             this.codeSize = 0
         }

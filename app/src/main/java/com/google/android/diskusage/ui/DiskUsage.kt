@@ -12,9 +12,6 @@ import android.os.Bundle
 import android.os.FileUriExposedException
 import android.os.Handler
 import android.provider.Settings
-import android.util.Log
-import android.view.Menu
-import android.view.MenuItem
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModelProvider
@@ -191,14 +188,20 @@ class DiskUsage : LoadableActivity() {
         }
 
         if (entry.children.isNullOrEmpty()) {
-            AlertDialog.Builder(this)
-                .setTitle(
-                    if (File(fullPath).isDirectory) getString(R.string.ask_to_delete_directory, path)
-                    else getString(R.string.ask_to_delete_file, path)
-                )
-                .setPositiveButton(R.string.button_delete) { _, _ -> BackgroundDelete.startDelete(this@DiskUsage, entry) }
-                .setNegativeButton(android.R.string.cancel, null)
-                .create().show()
+            val fullPathFile = File(fullPath)
+            if (fullPathFile.exists() && fullPathFile.isDirectory) {
+                AlertDialog.Builder(this)
+                    .setTitle(getString(R.string.ask_to_delete_directory, path))
+                    .setPositiveButton(R.string.button_delete) { _, _ -> BackgroundDelete.startDelete(this@DiskUsage, entry) }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .create().show()
+            } else {
+                AlertDialog.Builder(this)
+                    .setTitle(getString(R.string.ask_to_delete_file, path))
+                    .setPositiveButton(R.string.button_delete) { _, _ -> BackgroundDelete.startDelete(this@DiskUsage, entry) }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .create().show()
+            }
         } else {
             val i = Intent(this, DeleteActivity::class.java)
             i.putExtra(DELETE_PATH_KEY, path)
@@ -232,10 +235,10 @@ class DiskUsage : LoadableActivity() {
 
         val path = entry.absolutePath()
         val file = File(path)
-        var uri = Uri.fromFile(file)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            uri = FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", file)
+        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            FileProvider.getUriForFile(this, BuildConfig.APPLICATION_ID + ".provider", file)
+        } else {
+            Uri.fromFile(file)
         }
 
         if (file.isDirectory) {
@@ -287,12 +290,12 @@ class DiskUsage : LoadableActivity() {
 
         val fileName = entry.name ?: return
         val dot = fileName.lastIndexOf(".")
-        Log.d("diskusage", "name: $fileName path: $path dot: $dot")
+        Timber.d("name: $fileName path: $path dot: $dot")
         if (dot != -1) {
             val extension = fileName.substring(dot + 1).lowercase(Locale.getDefault())
             val mimeTypeMap = MimeTypeMap.getSingleton()
             val mime = mimeTypeMap.getMimeTypeFromExtension(extension)
-            Log.d("diskusage", "extension: $extension mime: $mime")
+            Timber.d("extension: $extension mime: $mime")
 
             try {
                 intent = Intent(Intent.ACTION_VIEW)
@@ -306,9 +309,9 @@ class DiskUsage : LoadableActivity() {
                 startActivity(intent)
                 return
             } catch (ignored: ActivityNotFoundException) {
-                Log.e("diskusage", "Can't open viewer and crash", ignored)
+                Timber.e("Can't open viewer and crash", ignored)
             } catch (ignored: FileUriExposedException) {
-                Log.e("diskusage", "Can't open viewer and crash", ignored)
+                Timber.e("Can't open viewer and crash", ignored)
             }
         }
         toast(R.string.no_viewer_found)
@@ -357,9 +360,9 @@ class DiskUsage : LoadableActivity() {
     override fun onRestoreInstanceState(inState: Bundle) {
         super.onRestoreInstanceState(inState)
         Timber.d("DiskUsage.onRestoreInstanceState(), rootPath = %s", inState.getString(KEY_KEY))
-        if (fileSystemState != null) {
-            fileSystemState!!.restoreStateInRenderThread(inState)
-        } else {
+        fileSystemState?.let {
+            it.restoreStateInRenderThread(inState)
+        } ?: run {
             afterLoadAction.add(Runnable { fileSystemState?.restoreStateInRenderThread(inState) })
         }
         menu.onRestoreInstanceState(inState)
@@ -551,77 +554,86 @@ class DiskUsage : LoadableActivity() {
 
     internal fun moveAppData(apps: Array<FileSystemEntry>, media: FileSystemRoot, blockSize: Long) {
         val diskusage = "com.google.android.diskusage"
+        val diskusageRegex = diskusage.toRegex()
         for (a in apps) {
             val app = a as FileSystemPackage
             try {
-                val cacheDir = cacheDir.canonicalPath.replace(diskusage.toRegex(), app.pkg)
+                val cacheDir = cacheDir.canonicalPath.replace(diskusageRegex, app.pkg)
                 moveIntoPackage(app, media, cacheDir, "Cache", FileSystemPackage.ChildType.CACHE, blockSize)
-            } catch (ignored: IOException) {
+            } catch (e: IOException) {
+                Timber.w(e, "Failed to get cache dir for ${app.pkg}")
             }
         }
         for (a in apps) {
             val app = a as FileSystemPackage
             try {
-                val dir = codeCacheDir.canonicalPath.replace(diskusage.toRegex(), app.pkg)
+                val dir = codeCacheDir.canonicalPath.replace(diskusageRegex, app.pkg)
                 moveIntoPackage(app, media, dir, "CodeCache", FileSystemPackage.ChildType.CACHE, blockSize)
-            } catch (ignored: IOException) {
+            } catch (e: IOException) {
+                Timber.w(e, "Failed to get code cache dir for ${app.pkg}")
             }
         }
         for (a in apps) {
             val app = a as FileSystemPackage
             try {
-                val dir = externalCacheDir?.canonicalPath?.replace(diskusage.toRegex(), app.pkg)
+                val dir = externalCacheDir?.canonicalPath?.replace(diskusageRegex, app.pkg)
                 if (dir != null) {
                     moveIntoPackage(app, media, dir, "ExternalCache", FileSystemPackage.ChildType.CACHE, blockSize)
                 }
-            } catch (ignored: IOException) {
+            } catch (e: IOException) {
+                Timber.w(e, "Failed to get external cache dir for ${app.pkg}")
             }
         }
         for (a in apps) {
             val app = a as FileSystemPackage
             try {
-                val dir = dataDir.canonicalPath.replace(diskusage.toRegex(), app.pkg)
+                val dir = dataDir.canonicalPath.replace(diskusageRegex, app.pkg)
                 moveIntoPackage(app, media, dir, "Data", FileSystemPackage.ChildType.DATA, blockSize)
-            } catch (ignored: IOException) {
+            } catch (e: IOException) {
+                Timber.w(e, "Failed to get data dir for ${app.pkg}")
             }
         }
         for (a in apps) {
             val app = a as FileSystemPackage
             try {
-                val dir = filesDir.canonicalPath.replace(diskusage.toRegex(), app.pkg)
+                val dir = filesDir.canonicalPath.replace(diskusageRegex, app.pkg)
                 moveIntoPackage(app, media, dir, "InternalFiles", FileSystemPackage.ChildType.DATA, blockSize)
-            } catch (ignored: IOException) {
+            } catch (e: IOException) {
+                Timber.w(e, "Failed to get files dir for ${app.pkg}")
             }
         }
 
         for (a in apps) {
             val app = a as FileSystemPackage
             try {
-                val dir = getExternalFilesDir(null)?.canonicalPath?.replace(diskusage.toRegex(), app.pkg)
+                val dir = getExternalFilesDir(null)?.canonicalPath?.replace(diskusageRegex, app.pkg)
                 if (dir != null) {
                     moveIntoPackage(app, media, dir, "Files", FileSystemPackage.ChildType.DATA, blockSize)
                 }
-            } catch (ignored: IOException) {
+            } catch (e: IOException) {
+                Timber.w(e, "Failed to get external files dir for ${app.pkg}")
             }
         }
         for (a in apps) {
             val app = a as FileSystemPackage
             try {
                 for (mediaDir in externalMediaDirs) {
-                    val dir = mediaDir.canonicalPath.replace(diskusage.toRegex(), app.pkg)
+                    val dir = mediaDir.canonicalPath.replace(diskusageRegex, app.pkg)
                     moveIntoPackage(app, media, dir, "MediaFiles", FileSystemPackage.ChildType.DATA, blockSize)
                 }
-            } catch (ignored: IOException) {
+            } catch (e: IOException) {
+                Timber.w(e, "Failed to get media dir for ${app.pkg}")
             }
         }
         for (a in apps) {
             val app = a as FileSystemPackage
             try {
                 for (mediaDir in obbDirs) {
-                    val dir = mediaDir.canonicalPath.replace(diskusage.toRegex(), app.pkg)
+                    val dir = mediaDir.canonicalPath.replace(diskusageRegex, app.pkg)
                     moveIntoPackage(app, media, dir, "Obb", FileSystemPackage.ChildType.CODE, blockSize)
                 }
-            } catch (ignored: IOException) {
+            } catch (e: IOException) {
+                Timber.w(e, "Failed to get obb dir for ${app.pkg}")
             }
         }
 

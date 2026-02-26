@@ -101,7 +101,11 @@ class BackgroundDelete private constructor(
             val status = deleteRecursively(file)
 
             withContext(Dispatchers.Main) {
-                try { dialog?.dismiss() } catch (_: Exception) {}
+                try {
+                    dialog?.dismiss()
+                } catch (e: Exception) {
+                    Timber.w(e, "Failed to dismiss dialog")
+                }
 
                 diskUsage.fileSystemState?.removeInRenderThread(entry)
 
