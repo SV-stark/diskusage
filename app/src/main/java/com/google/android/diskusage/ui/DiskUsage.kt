@@ -425,7 +425,7 @@ class DiskUsage : LoadableActivity() {
             while (isActive) {
                 val dialog = persistentState.loading
                 if (dialog != null) {
-                    dialog.setMax(stats.busyBlocks)
+                    dialog.max = stats.busyBlocks
                     val lastFile = lastFileProvider()
 
                     if (lastFile !== file) {

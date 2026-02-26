@@ -19,10 +19,10 @@
 
 package com.google.android.diskusage.filesystem.entity
 
-class FileSystemEntrySmall(parent: FileSystemEntry?, name: String?, var numFiles: Int) : FileSystemEntry(parent, name) {
+class FileSystemEntrySmall(parent: FileSystemEntry?, name: String?, var numFilesCount: Int) : FileSystemEntry(parent, name) {
 
     override fun create(): FileSystemEntry {
-        return FileSystemEntrySmall(null, this.name, this.numFiles)
+        return FileSystemEntrySmall(null, this.name, this.numFilesCount)
     }
 
     override fun filter(pattern: CharSequence?, blockSize: Long): FileSystemEntry? {

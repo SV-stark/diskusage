@@ -43,10 +43,6 @@ class ScanProgressDialog(context: Context?) : AlertDialog(context) {
     var max: Long = 0
     private lateinit var progressPercentFormat: NumberFormat
 
-    fun setMax(max: Long) {
-        this.max = max
-    }
-
     private var depth = 0
     private var warned = false
 

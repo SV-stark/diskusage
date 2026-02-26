@@ -240,7 +240,7 @@ open class FileSystemEntry(
             return parent!!.children!![index - 1]
         }
 
-    private fun getDrawingCache(): DrawingCache {
+    private fun getOrCreateDrawingCache(): DrawingCache {
         if (drawingCache != null) return drawingCache!!
         val drawingCache = DrawingCache(this)
         this.drawingCache = drawingCache
@@ -459,7 +459,7 @@ open class FileSystemEntry(
         }
     }
 
-    fun getEntryByName(path: String, exactMatch: Boolean): FileSystemEntry? {
+    open fun getEntryByName(path: String, exactMatch: Boolean): FileSystemEntry? {
         Timber.d("getEntryByName: getEntryForName = %s", path)
         val pathElements = path.split("/".toRegex()).toTypedArray()
         var entry = this
@@ -668,11 +668,11 @@ open class FileSystemEntry(
                         val pos1 = pos - descent
                         val pos2 = pos - ascent
 
-                        val cache = c.getDrawingCache()
+                        val cache = c.getOrCreateDrawingCache()
                         cache.drawText(rt, xoffset + 2, pos1, elementWidth - 5)
                         cache.drawSize(rt, xoffset + 2, pos2, elementWidth - 5)
                     } else if (bottom - top > fontSize0) {
-                        val cache = c.getDrawingCache()
+                        val cache = c.getOrCreateDrawingCache()
                         cache.drawText(rt, xoffset + 2, (top + bottom - ascent - descent) / 2, elementWidth - 5)
                     }
                 }
@@ -760,7 +760,7 @@ open class FileSystemEntry(
                         val pos1 = pos - descent
                         val pos2 = pos - ascent
 
-                        val cache = c.getDrawingCache()
+                        val cache = c.getOrCreateDrawingCache()
                         val sizeString = cache.sizeString
                         val cliplen = fg2.breakText(c.name, true, (elementWidth - 4).toFloat(), null)
                         val clippedName = c.name?.substring(0, cliplen) ?: ""
@@ -855,11 +855,11 @@ open class FileSystemEntry(
                         val pos1 = pos - descent
                         val pos2 = pos - ascent
 
-                        val cache = c.getDrawingCache()
+                        val cache = c.getOrCreateDrawingCache()
                         cache.drawText(rt, xoffsetParam + 2, pos1, elementWidth - 5)
                         cache.drawSize(rt, xoffsetParam + 2, pos2, elementWidth - 5)
                     } else if (bottom - top > fontSize0) {
-                        val cache = c.getDrawingCache()
+                        val cache = c.getOrCreateDrawingCache()
                         cache.drawText(rt, xoffsetParam + 2, (top + bottom - ascent - descent) / 2, elementWidth - 5)
                     }
                 }
@@ -942,7 +942,7 @@ open class FileSystemEntry(
                         val pos1 = pos - descent
                         val pos2 = pos - ascent
 
-                        val cache = c.getDrawingCache()
+                        val cache = c.getOrCreateDrawingCache()
                         val sizeString = cache.sizeString
                         val cliplen = fg2.breakText(c.name, true, (elementWidth - 4).toFloat(), null)
                         val clippedName = c.name?.substring(0, cliplen) ?: ""

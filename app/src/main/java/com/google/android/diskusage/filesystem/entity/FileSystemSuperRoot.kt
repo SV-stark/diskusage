@@ -39,6 +39,6 @@ class FileSystemSuperRoot(val displayBlockSize: Long) : FileSystemSpecial(null, 
             ?.firstNotNullOfOrNull { it.getByAbsolutePath(path) }
     }
 
-    fun getEntryByName(path: String, exactMatch: Boolean): FileSystemEntry? =
+    override fun getEntryByName(path: String, exactMatch: Boolean): FileSystemEntry? =
         children?.firstOrNull()?.getEntryByName(path, exactMatch)
 }

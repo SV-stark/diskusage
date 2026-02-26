@@ -40,7 +40,7 @@ class Apps2SDLoader(private val diskUsage: DiskUsage) {
                         dialog.switchToSecondary()
                         switchToSecondary = false
                     }
-                    dialog.setMax(packages.size.toLong())
+                    dialog.max = packages.size.toLong()
                     dialog.setProgress(numLoadedPackages.toLong(), lastAppName)
                 }
                 delay(50)
