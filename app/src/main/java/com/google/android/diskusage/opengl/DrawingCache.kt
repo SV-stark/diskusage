@@ -26,13 +26,13 @@ class DrawingCache(private val entry: FileSystemEntry) {
         if (textPixels == null) {
             textPixels = rt?.TextPixels(entry.name)
         }
-        textPixels?.draw(rt, x0, y0, elementWidth.toFloat())
+        textPixels?.draw(rt!!, x0, y0, elementWidth.toFloat())
     }
 
     fun drawSize(rt: RenderingThread?, x0: Float, y0: Float, elementWidth: Int) {
         if (sizePixels == null) {
             sizePixels = rt?.TextPixels(sizeString)
         }
-        sizePixels?.draw(rt, x0, y0, elementWidth.toFloat())
+        sizePixels?.draw(rt!!, x0, y0, elementWidth.toFloat())
     }
 }

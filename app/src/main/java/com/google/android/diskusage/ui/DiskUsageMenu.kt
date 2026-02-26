@@ -230,22 +230,22 @@ class DiskUsageMenu(val diskusage: DiskUsage) {
     }
 
     private fun updateMenu() {
-        if (diskusage.fileSystemState == null) {
+        val fileSystemState = diskusage.fileSystemState ?: run {
             viewModel.hideToolBarActionButton()
             return
         }
 
-        if (diskusage.fileSystemState.sdcardIsEmpty()) {
+        if (fileSystemState.sdcardIsEmpty()) {
             viewModel.hideToolBarActionButton()
             viewModel.enableRescanButton()
         }
 
         viewModel.showToolbarActionButton()
 
-        val titleRes = if (diskusage.fileSystemState.isGPU) R.string.software_renderer else R.string.hardware_renderer
+        val titleRes = if (fileSystemState.isGPU) R.string.software_renderer else R.string.hardware_renderer
         viewModel.setRendererButtonTitle(diskusage.getString(titleRes))
 
-        val isFirstRoot = selectedEntity === diskusage.fileSystemState.masterRoot.children?.getOrNull(0)
+        val isFirstRoot = selectedEntity === fileSystemState.masterRoot.children?.getOrNull(0)
         val isSpecial = selectedEntity is FileSystemSpecial
         val view = !(isFirstRoot || isSpecial)
 
@@ -255,9 +255,9 @@ class DiskUsageMenu(val diskusage: DiskUsage) {
             viewModel.disableShowButton()
         }
 
-        val fileOrNotSearching = searchPattern == null || selectedEntity!!.children == null
-        val mountPoint = MountPoint.getForKey(diskusage, diskusage.getKey())
-        if (view && selectedEntity!!.isDeletable && fileOrNotSearching && mountPoint.isDeleteSupported) {
+        val fileOrNotSearching = searchPattern == null || selectedEntity?.children == null
+        val mountPoint = MountPoint.getForKey(diskusage, diskusage.key)
+        if (view && selectedEntity?.isDeletable() == true && fileOrNotSearching && mountPoint?.isDeleteSupported == true) {
             viewModel.enableDeleteButton()
         } else {
             viewModel.disableDeleteButton()

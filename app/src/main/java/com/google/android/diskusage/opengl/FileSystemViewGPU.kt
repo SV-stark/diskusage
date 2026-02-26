@@ -12,7 +12,7 @@ import com.google.android.diskusage.ui.FileSystemState.FileSystemView
 import timber.log.Timber
 
 @SuppressLint("ViewConstructor")
-class FileSystemViewGPU(context: Context?, var eventHandler: FileSystemState) : SurfaceView(context),
+class FileSystemViewGPU(context: Context, var eventHandler: FileSystemState) : SurfaceView(context),
     FileSystemView, SurfaceHolder.Callback {
     private val thread: AbstractRenderingThread
 
@@ -37,10 +37,8 @@ class FileSystemViewGPU(context: Context?, var eventHandler: FileSystemState) : 
         return true
     }
 
-    fun runInRenderThread(r: Runnable?) {
-        if (r != null) {
-            thread.addEvent(r)
-        }
+    override fun runInRenderThread(r: Runnable) {
+        thread.addEvent(r)
     }
 
     override fun requestRepaintGPU() {

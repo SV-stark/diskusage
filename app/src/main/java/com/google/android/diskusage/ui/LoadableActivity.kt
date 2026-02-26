@@ -22,6 +22,7 @@ package com.google.android.diskusage.ui
 import android.app.Activity
 import android.app.AlertDialog
 import android.os.Bundle
+import android.os.Handler
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CancellationException
@@ -32,7 +33,6 @@ import com.google.android.diskusage.R
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot
-import com.google.android.diskusage.ui.DiskUsage.AfterLoad
 import com.google.android.diskusage.ui.common.ScanProgressDialog
 import splitties.toast.toast
 import timber.log.Timber
@@ -41,6 +41,7 @@ import java.util.TreeMap
 
 abstract class LoadableActivity : AppCompatActivity() {
     var pkg_removed: FileSystemPackage? = null
+    val handler = Handler()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,7 +65,7 @@ abstract class LoadableActivity : AppCompatActivity() {
         }
 
     fun loadFiles(
-        runAfterLoad: AfterLoad?, force: Boolean
+        runAfterLoad: ((FileSystemSuperRoot, Boolean) -> Unit)?, force: Boolean
     ) {
         val scanRunning: Boolean
         val state = persistentState
@@ -75,7 +76,7 @@ abstract class LoadableActivity : AppCompatActivity() {
         }
 
         if (state.root != null) {
-            runAfterLoad?.run(state.root!!, true)
+            runAfterLoad?.invoke(state.root!!, true)
             return
         }
 
@@ -126,7 +127,7 @@ abstract class LoadableActivity : AppCompatActivity() {
                 state.root = newRoot
                 pkg_removed = null
                 Timber.d("loadFiles: Run afterLoad = %s", afterLoadCopy)
-                afterLoadCopy?.run(state.root!!, false)
+                afterLoadCopy?.invoke(state.root!!, false)
                 return@launch
             } catch (e: OutOfMemoryError) {
                 state.root = null
@@ -169,7 +170,7 @@ abstract class LoadableActivity : AppCompatActivity() {
     }
 
     private fun handleEmptySDCard(
-        afterLoad: AfterLoad?
+        afterLoad: ((FileSystemSuperRoot, Boolean) -> Unit)?
     ) {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.empty_or_missing_sdcard))
@@ -185,7 +186,7 @@ abstract class LoadableActivity : AppCompatActivity() {
     class PersistentActivityState {
         var loading: ScanProgressDialog? = null
         var root: FileSystemSuperRoot? = null
-        var afterLoad: AfterLoad? = null
+        var afterLoad: ((FileSystemSuperRoot, Boolean) -> Unit)? = null
     }
 
     companion object {

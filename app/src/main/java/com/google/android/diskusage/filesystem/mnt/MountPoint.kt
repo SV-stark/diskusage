@@ -75,7 +75,7 @@ open class MountPoint internal constructor(
             init = true
 
             for (dir in PortableFileImpl.getExternalAppFilesDirs()) {
-                val path = dir.absolutePath.replaceFirst("/Android/data/com.google.android.diskusage/files", "")
+                val path = dir.absolutePath.replace("/Android/data/com.google.android.diskusage/files".toRegex(), "")
                 Timber.d("MountPoint.initMountPoints: mountpoint %s", path)
                 val internal = !dir.isExternalStorageRemovable
                 val title = if (internal) context.getString(R.string.storage_card) else path

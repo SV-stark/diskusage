@@ -27,6 +27,7 @@ import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -89,7 +90,7 @@ class SelectActivity : ComponentActivity() {
             actionList.add(DiskUsageAction(mountPoint))
         }
 
-        if (DeviceHelper.isDeviceRooted) {
+        if (DeviceHelper.isDeviceRooted()) {
             val prefs = getSharedPreferences("ignore_list", Context.MODE_PRIVATE)
             val ignoreList = prefs.all
             if (ignoreList.keys.isNotEmpty()) {
@@ -168,10 +169,10 @@ class SelectActivity : ComponentActivity() {
         makeDialog()
         
         mountsUpdateJob = lifecycleScope.launch {
-            while (kotlinx.coroutines.isActive) {
+            while (isActive) {
                 var reload = false
                 try {
-                    val reader = IOHelper.procMountsReader
+                    val reader = IOHelper.getProcMountsReader()
                     var line: String?
                     var checksum = 0
                     while ((reader.readLine().also { line = it }) != null) {

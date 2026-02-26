@@ -96,6 +96,7 @@ class FileSystemState(
     private var view: FileSystemView? = null
     private var cursor: Cursor
     var mainThreadAction: MainThreadAction
+    private var zoomState = ZoomState.ZOOM_OTHER
 
     private var numSpecialEntries = 0
     private var freeSpace: FileSystemFreeSpace? = null
@@ -1347,8 +1348,6 @@ class FileSystemState(
         ZOOM_ALLOCATED,
         ZOOM_OTHER
     }
-
-    private var zoomState = ZoomState.ZOOM_OTHER
 
     fun killRenderThread() {
         view?.killRenderThread()

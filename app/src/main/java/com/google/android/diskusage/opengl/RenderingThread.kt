@@ -84,8 +84,8 @@ class RenderingThread(
 
         // For very high DPI devices, we might want to check if the physical size of letters is sufficient
         // Let's say, 20 px font on 300 dpi devices seems readable enough: 
-        if (textSize / dpi < 20 / 300.f) {
-            textSize = 20.f / 300.f * dpi
+        if (textSize.toFloat() / dpi.toFloat() < 20.0f / 300.0f) {
+            textSize = (20.0f / 300.0f * dpi).toFloat()
         }
 
         textPaint.textSize = textSize
@@ -656,13 +656,13 @@ class RenderingThread(
         if (gl == null) return false
         //    renderFrameStart();
         val color = Color.GRAY // context.getResources().getColor(android.R.color.background_light);
-        val r = (color shr 16 and 255) / 255.f
-        val g = (color shr 8 and 255) / 255.f
-        val b = (color and 255) / 255.f
-        gl.glClearColor(r, g, b, 1.f)
+        val r = ((color shr 16 and 255) / 255.0f)
+        val g = ((color shr 8 and 255) / 255.0f)
+        val b = ((color and 255) / 255.0f)
+        gl.glClearColor(r.toFloat(), g.toFloat(), b.toFloat(), 1.0f)
         gl.glClear(GL10.GL_COLOR_BUFFER_BIT or GL10.GL_DEPTH_BUFFER_BIT)
         gl.glLoadIdentity()
-        gl.glScalef(0.5f, 0.5f, 1.f)
+        gl.glScalef(0.5f, 0.5f, 1.0f)
 
         val renderRequested = eventHandler.onDrawGPU(this)
         flush()
@@ -712,12 +712,12 @@ class RenderingThread(
         //  1  5  9 13
         //  2  6 10 14
         //  3  7 11 15
-        matrix[0] = 4.f / width
-        matrix[5] = -4.f / height
-        matrix[10] = 1.f
-        matrix[15] = 1.f
-        matrix[12] = -1f
-        matrix[13] = 1f
+        matrix[0] = 4.0f / width
+        matrix[5] = -4.0f / height
+        matrix[10] = 1.0f
+        matrix[15] = 1.0f
+        matrix[12] = -1.0f
+        matrix[13] = 1.0f
 
         gl.glLoadMatrixf(matrix, 0)
 
@@ -765,7 +765,7 @@ class RenderingThread(
         private val textPaint = Paint()
         private val padding = FileSystemEntry.padding
 
-        private const val divTexSize = 1.f / TEXTURE_SIZE
+        private const val divTexSize = 1.0f / TEXTURE_SIZE
 
         init {
             textPaint.color = Color.parseColor("#FFFFFF")

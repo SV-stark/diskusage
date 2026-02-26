@@ -16,14 +16,15 @@ class RendererManager(private val diskusage: DiskUsage) {
         get() = diskusage.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     fun switchRenderer(root: FileSystemSuperRoot?) {
-        diskusage.fileSystemState.killRenderThread()
+        diskusage.fileSystemState?.killRenderThread()
         finishRendererSwitch(root)
     }
 
     fun finishRendererSwitch(root: FileSystemSuperRoot?) {
         hwRenderer = !hwRenderer
         rendererChanged = true
-        root?.let { makeView(diskusage.fileSystemState, it) }
+        val state = diskusage.fileSystemState
+        root?.let { state?.let { s -> makeView(s, it) } }
     }
 
     fun makeView(

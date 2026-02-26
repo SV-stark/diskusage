@@ -19,15 +19,18 @@
  -->
 <resources>
     <string name="app_name">DiskUsage</string>
-<string name="app_description">Utility to examine SD card content and cleanup some space there.</string>
-<string name="scaning_directories">Scanning directories...</string>
-<string name="button_show">Show</string>
-<string name="button_delete">Delete</string>
-<string name="button_rescan">Rescan</string>
-<string name="button_cancel">Cancel</string>
-<string name="button_background">Background</string>
-<string name="install_oi_file_manager">Install &quot;Solid Explorer&quot; to view directories</string>
-<string name="title_for_path">%s</string>
+    <string name="app_description">Utility to examine SD card content and cleanup some space there.</string>
+    <string name="scaning_directories">Scanning directories...</string>
+    <string name="button_show">Show</string>
+    <string name="button_delete">Delete</string>
+    <string name="button_rescan">Rescan</string>
+    <string name="button_cancel">Cancel</string>
+    <string name="button_background">Background</string>
+    <string name="install_oi_file_manager">Install &quot;Solid Explorer&quot; to view directories</string>
+    <string name="title_for_path">%s</string>
+    <string name="delete_title">Delete</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
 <string name="title_in_oi_file_manager">Solid Explorer</string>
 <string name="button_text_in_oi_file_manager">Return to DiskUsage</string>
 <string name="no_viewer_found">No viewer found</string>

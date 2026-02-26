@@ -72,7 +72,7 @@ abstract class AbstractRenderingThread : Thread() {
     @Throws(InterruptedException::class)
     fun runEvents() {
         while (true) {
-            var e: Runnable
+            var e: Runnable = object : Runnable { override fun run() {} }
             synchronized(events) {
                 if (events.isEmpty()) {
                     if (stopRenderingThread && !surfaceAvailable) {
@@ -104,7 +104,7 @@ abstract class AbstractRenderingThread : Thread() {
         }
     }
 
-    private abstract class ControlEvent : Runnable
+    abstract class ControlEvent : Runnable
 
     inner class SurfaceAvailableEvent(private val holder: SurfaceHolder, private val a: Boolean) : ControlEvent() {
         override fun run() {

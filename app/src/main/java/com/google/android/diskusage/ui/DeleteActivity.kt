@@ -65,10 +65,10 @@ class DeleteActivity : ComponentActivity() {
         if (absolutePath != null) {
             val file = File(absolutePath)
             if (file.exists()) {
-                val fileTreeWalk = FileTreeWalk(file, FileWalkDirection.TOP_DOWN)
-                for (sub in fileTreeWalk) {
+                val files = file.walkTopDown()
+                for (sub in files) {
                     if (sub.isFile) {
-                        val size = FileSystemEntry.calcSizeString(sub.length())
+                        val size = FileSystemEntry.calcSizeString(sub.length().toFloat())
                         fileInfos.add(FileInfo(size, sub.name))
                     } else if (sub.isDirectory) {
                         fileInfos.add(FileInfo("", sub.name))

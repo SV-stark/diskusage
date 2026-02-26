@@ -118,7 +118,7 @@ class Scanner(
     }
 
     private fun scanDirectory(parent: FileSystemEntry?, file: LegacyFile, depth: Int, selfBlocks: Long) {
-        val name = file.name
+        val name = file.name ?: return
         makeNode(parent, name)
         createdNodeNumDirs = 1
         createdNodeNumFiles = 0
@@ -152,7 +152,7 @@ class Scanner(
         var blocks = selfBlocks
 
         for (listName in listNames) {
-            val childFile = file.getChild(listName)
+            val childFile = file.getChild(listName) ?: continue
 
             val stBlocks: Long
             val stSize: Long
@@ -168,7 +168,7 @@ class Scanner(
             var files = 1
 
             if (childFile.isFile) {
-                makeNode(thisNode, childFile.name)
+                makeNode(thisNode, childFile.name ?: continue)
                 createdNode?.initSizeInBytesAndBlocks(stSize, stBlocks / blockSizeIn512Bytes, blockSize)
                 pos += createdNode?.sizeInBlocks ?: 0L
                 lastCreatedFile = createdNode
@@ -282,4 +282,7 @@ class Scanner(
         }
         return size
     }
+
+    override fun lastCreatedFile(): FileSystemEntry? = lastCreatedFile
+    override fun pos(): Long = pos
 }

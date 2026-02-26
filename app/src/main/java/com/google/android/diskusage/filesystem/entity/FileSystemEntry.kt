@@ -278,7 +278,7 @@ open class FileSystemEntry(
         val cursorTop = (cursor.top - viewTop) * yscale
         val cursorRight = cursorLeft + elementWidth
         val cursorBottom = cursorTop + cursor.position.sizeForRendering * yscale
-        rt.cursorSquare.drawFrame(cursorLeft, cursorTop, cursorRight, cursorBottom)
+        rt.cursorSquare?.drawFrame(cursorLeft, cursorTop, cursorRight, cursorBottom)
     }
 
     fun paint(
@@ -371,9 +371,9 @@ open class FileSystemEntry(
 
         for (depth in 0 until maxDepth) {
             if (children0 == null) break
-            val nchildren = children0.size
+            val nchildren = children0!!.size
             for (c in 0 until nchildren) {
-                val e = children0[c]
+                val e = children0!![c]
                 val size = e.sizeForRendering
                 if (currOffset + size < offset) {
                     currOffset += size
@@ -648,7 +648,7 @@ open class FileSystemEntry(
                 if (clipLeft < elementWidth) {
                     val fontSize0 = fontSize
 
-                    rt.specialSquare.draw(xoffset, top, child_xoffset, bottom)
+                    rt.specialSquare?.draw(xoffset, top, child_xoffset, bottom)
 
                     if (bottom - top > fontSize0 * 2) {
                         var pos = (top + bottom) * 0.5f
@@ -826,7 +826,7 @@ open class FileSystemEntry(
 
                 if (bottom - top < 4 && deletedEntry !== c) {
                     bottom += parentSize * yscale
-                    rt.smallSquare.draw(xoffsetParam, top, child_xoffset, bottom)
+                    rt.smallSquare?.draw(xoffsetParam, top, child_xoffset, bottom)
                     return
                 }
 
@@ -835,7 +835,7 @@ open class FileSystemEntry(
 
                     val isFile = c.children == null
                     val square = if (isFile) rt.fileSquare else rt.dirSquare
-                    square.draw(xoffsetParam, top, child_xoffset, bottom)
+                    square?.draw(xoffsetParam, top, child_xoffset, bottom)
 
                     if (bottom - top > fontSize0 * 2) {
                         var pos = (top + bottom) * 0.5f

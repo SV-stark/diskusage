@@ -18,10 +18,15 @@ import android.view.MenuItem
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import com.google.android.diskusage.BuildConfig
 import com.google.android.diskusage.R
 import com.google.android.diskusage.core.NativeScanner
 import com.google.android.diskusage.core.Scanner
+import com.google.android.diskusage.datasource.StatFsSource
 import com.google.android.diskusage.datasource.fast.LegacyFileImpl
 import com.google.android.diskusage.datasource.fast.StatFsSourceImpl
 import com.google.android.diskusage.filesystem.Apps2SDLoader
@@ -34,6 +39,8 @@ import timber.log.Timber
 import java.io.File
 import java.io.IOException
 import java.util.*
+
+typealias AfterLoad = (FileSystemSuperRoot, Boolean) -> Unit
 
 class DiskUsage : LoadableActivity() {
     var fileSystemState: FileSystemState? = null
@@ -58,16 +65,6 @@ class DiskUsage : LoadableActivity() {
         val viewModel = ViewModelProvider(this)[DiskUsageViewModel::class.java]
         this.viewModel = viewModel
         Timber.d("DiskUsage.onCreate()")
-        setContent {
-            androidx.compose.material3.MaterialTheme {
-                androidx.compose.material3.Surface(
-                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
-                    color = androidx.compose.material3.MaterialTheme.colorScheme.background
-                ) {
-                    androidx.compose.foundation.layout.Box(modifier = androidx.compose.ui.Modifier.fillMaxSize())
-                }
-            }
-        }
         if (com.google.android.diskusage.utils.ThemeHelper.isAmoledTheme(this)) {
             window.decorView.setBackgroundColor(android.graphics.Color.BLACK)
         }
@@ -81,7 +78,7 @@ class DiskUsage : LoadableActivity() {
         }
         val receivedState = i.getBundleExtra(STATE_KEY)
 
-        val mountPoint = MountPoint.getForKey(this, _key)
+        val mountPoint = MountPoint.getForKey(this, _key!!)
         if (mountPoint == null) {
             finish()
             return
@@ -91,7 +88,7 @@ class DiskUsage : LoadableActivity() {
     }
 
     fun applyPatternNewRoot(newRoot: FileSystemSuperRoot?, searchQuery: String?) {
-        fileSystemState?.replaceRootKeepCursor(newRoot, searchQuery)
+        fileSystemState?.replaceRootKeepCursor(newRoot!!, searchQuery)
     }
 
     override fun onResume() {
@@ -109,7 +106,7 @@ class DiskUsage : LoadableActivity() {
             }
             viewModel.removedPackage = null
         }
-        LoadFiles(this, { root, isCached ->
+        loadFiles({ root, isCached ->
             val currentState = FileSystemState(this@DiskUsage, root)
             fileSystemState = currentState
             rendererManager.makeView(currentState, root)
@@ -185,7 +182,7 @@ class DiskUsage : LoadableActivity() {
             }
             is FileSystemPackage -> {
                 if (entry.children.isNullOrEmpty()) {
-                    removedPackage = entry
+                    viewModel.removedPackage = entry
                     BackgroundDelete.startDelete(this, entry)
                     return
                 }
@@ -206,7 +203,7 @@ class DiskUsage : LoadableActivity() {
             val i = Intent(this, DeleteActivity::class.java)
             i.putExtra(DELETE_PATH_KEY, path)
             i.putExtra(DELETE_ABSOLUTE_PATH_KEY, fullPath)
-            i.putExtra(DeleteActivity.NUM_FILES_KEY, entry.numFiles)
+            i.putExtra(DeleteActivity.NUM_FILES_KEY, entry.getNumFiles())
             i.putExtra(KEY_KEY, _key)
             i.putExtra(DeleteActivity.SIZE_KEY, entry.sizeString())
             startActivityForResult(i, 0)
@@ -288,7 +285,7 @@ class DiskUsage : LoadableActivity() {
             return
         }
 
-        val fileName = entry.name
+        val fileName = entry.name ?: return
         val dot = fileName.lastIndexOf(".")
         Log.d("diskusage", "name: $fileName path: $path dot: $dot")
         if (dot != -1) {
@@ -318,7 +315,7 @@ class DiskUsage : LoadableActivity() {
     }
 
     fun rescan() {
-        LoadFiles(this, { newRoot, isCached ->
+        loadFiles({ newRoot, isCached ->
             fileSystemState?.startZoomAnimationInRenderThread(newRoot, !isCached, false)
         }, true)
     }
@@ -412,8 +409,8 @@ class DiskUsage : LoadableActivity() {
             if (totalBlocks == 0L) return "Used <no information>"
             return String.format(
                 "Used %s of %s",
-                FileSystemEntry.calcSizeString(busyBlocks * blockSize),
-                FileSystemEntry.calcSizeString(totalBlocks * blockSize)
+                FileSystemEntry.calcSizeString((busyBlocks * blockSize).toFloat()),
+                FileSystemEntry.calcSizeString((totalBlocks * blockSize).toFloat())
             )
         }
     }
@@ -423,9 +420,9 @@ class DiskUsage : LoadableActivity() {
         posProvider: () -> Long,
         stats: FileSystemStats
     ): kotlinx.coroutines.Job {
-        return androidx.lifecycle.lifecycleScope.launch {
+        return lifecycleScope.launch {
             var file: FileSystemEntry? = null
-            while (kotlinx.coroutines.isActive) {
+            while (isActive) {
                 val dialog = persistentState.loading
                 if (dialog != null) {
                     dialog.setMax(stats.busyBlocks)
@@ -436,14 +433,14 @@ class DiskUsage : LoadableActivity() {
                     }
                     file = lastFile
                 }
-                kotlinx.coroutines.delay(50)
+                delay(50)
             }
         }
     }
 
     @Throws(IOException::class, InterruptedException::class)
     override fun scan(): FileSystemSuperRoot {
-        val mountPoint = MountPoint.getForKey(this, _key)!!
+        val mountPoint = MountPoint.getForKey(this, key)!!
         val stats = FileSystemStats(mountPoint)
         val heap = getMemoryQuota()
 
@@ -455,7 +452,7 @@ class DiskUsage : LoadableActivity() {
                 { scanner.pos() },
                 stats
             )
-            rootElement = scanner.scan(mountPoint)
+            rootElement = scanner.scan(mountPoint)!!
             progressJob.cancel()
         } catch (e: RuntimeException) {
             val scanner = Scanner(20, stats.blockSize, stats.busyBlocks, heap)
@@ -464,14 +461,14 @@ class DiskUsage : LoadableActivity() {
                 { scanner.pos() },
                 stats
             )
-            rootElement = scanner.scan(LegacyFileImpl.createRoot(mountPoint.root))
+            rootElement = scanner.scan(LegacyFileImpl.createRoot(mountPoint.root))!!
             progressJob.cancel()
         }
 
         var entries = ArrayList<FileSystemEntry>()
 
-        if (rootElement.children != null) {
-            entries.addAll(listOf(*rootElement.children))
+        rootElement.children?.let { children ->
+            entries.addAll(children.toList())
         }
 
         if (mountPoint.hasApps()) {
@@ -634,5 +631,10 @@ class DiskUsage : LoadableActivity() {
 
         const val DELETE_PATH_KEY = "path"
         const val DELETE_ABSOLUTE_PATH_KEY = "absolute_path"
+    }
+
+    interface ProgressGenerator {
+        fun lastCreatedFile(): FileSystemEntry?
+        fun pos(): Long
     }
 }

@@ -48,6 +48,11 @@ class PortableFileImpl private constructor(private val file: File) : PortableFil
 
         @JvmStatic
         val externalAppFilesDirs: Array<PortableFile?>
-            get() = PathHelper.getExternalAppFilesPaths().map { make(it) }.toTypedArray()
+            get() = PathHelper.getExternalAppFilesPaths().mapNotNull { make(it) }.toTypedArray()
+
+        @JvmStatic
+        fun getExternalAppFilesDirs(): List<PortableFile> {
+            return externalAppFilesDirs.filterNotNull()
+        }
     }
 }

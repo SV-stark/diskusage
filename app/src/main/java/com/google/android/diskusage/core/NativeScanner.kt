@@ -156,7 +156,7 @@ class NativeScanner(
 
     private fun print(msg: String, list: SmallList) {
         val hiddenPath = java.lang.StringBuilder()
-        var p = list.parent
+        var p: FileSystemEntry? = list.parent
         while (p != null) {
             hiddenPath.insert(0, p.name + "/")
             p = p.parent
@@ -516,4 +516,7 @@ class NativeScanner(
             print("killed", removed)
         }
     }
+
+    override fun lastCreatedFile(): FileSystemEntry? = lastCreatedFile
+    override fun pos(): Long = pos
 }

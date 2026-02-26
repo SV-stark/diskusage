@@ -36,7 +36,10 @@ class SearchManager(private val menu: DiskUsageMenu) {
             }
         }
         
-        val currentBaseRoot = baseRoot ?: return menu.finishedSearch(null, null)
+        val currentBaseRoot = baseRoot ?: run {
+            menu.finishedSearch(null, null)
+            return
+        }
 
         activeSearchJob = menu.diskusage.lifecycleScope.launch {
             try {

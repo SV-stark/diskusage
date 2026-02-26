@@ -39,8 +39,8 @@ class ScanProgressDialog(context: Context?) : AlertDialog(context) {
     private lateinit var detailsTextView: TextView
     private lateinit var percentTextView: TextView
 
-    private var progress: Long = 0
-    private var max: Long = 0
+    var progress: Long = 0
+    var max: Long = 0
     private lateinit var progressPercentFormat: NumberFormat
 
     fun setMax(max: Long) {

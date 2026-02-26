@@ -129,9 +129,11 @@ class BackgroundDelete private constructor(
             val newEntry = Scanner(20, displayBlockSize, 0, 4).scan(
                 LegacyFileImpl.createRoot(mountPoint.root + "/" + path)
             )
-            entry.parent?.insert(newEntry!!, displayBlockSize)
-            diskUsage.fileSystemState?.restore(newEntry!!)
-            Timber.d("restore: Restoring undeleted: %s %s", newEntry.name, newEntry.sizeString())
+            newEntry?.let { entry ->
+                entry.parent?.insert(entry, displayBlockSize)
+                diskUsage.fileSystemState?.restore(entry)
+                Timber.d("restore: Restoring undeleted: %s %s", entry.name, entry.sizeString())
+            }
         } catch (e: IOException) {
             Timber.d("Failed to restore")
         }
