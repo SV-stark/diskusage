@@ -517,10 +517,10 @@ class DiskUsage : LoadableActivity() {
             }
         }
 
-        rootElement = FileSystemRoot.makeNode(mountPoint.title, mountPoint.root, false)
+        val finalRoot = FileSystemRoot.makeNode(mountPoint.title, mountPoint.root, false)
             .setChildren(entries.toTypedArray(), stats.blockSize)
         val newRoot = FileSystemSuperRoot(stats.blockSize)
-        newRoot.setChildren(arrayOf(rootElement), stats.blockSize)
+        newRoot.setChildren(arrayOf(finalRoot), stats.blockSize)
         return newRoot
     }
 
