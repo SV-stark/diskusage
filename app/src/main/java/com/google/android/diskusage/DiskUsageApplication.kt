@@ -4,12 +4,11 @@ import android.app.Application
 import com.google.android.material.color.DynamicColors
 import timber.log.Timber
 
-class DiskUsageApplication: Application() {
+class DiskUsageApplication : Application() {
     companion object {
         private var instance: DiskUsageApplication? = null
         fun getInstance() = instance
             ?: throw IllegalStateException("DiskUsage application is not created!")
-
     }
     override fun onCreate() {
         super.onCreate()

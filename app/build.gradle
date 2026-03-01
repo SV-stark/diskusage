@@ -2,6 +2,19 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
     id 'org.jetbrains.kotlin.plugin.compose'
+    id 'com.diffplug.spotless'
+}
+
+spotless {
+    kotlin {
+        target "**/*.kt"
+        ktlint("1.2.1").editorConfigOverride([
+            "ktlint_standard_max-line-length": "disabled"
+        ])
+        trimTrailingWhitespace()
+        leadingTabsToSpaces()
+        endWithNewline()
+    }
 }
 
 android {

@@ -16,7 +16,7 @@ class SearchManager(private val menu: DiskUsageMenu) {
 
     private data class SearchData(
         val query: String,
-        val newRoot: FileSystemSuperRoot?
+        val newRoot: FileSystemSuperRoot?,
     )
 
     fun search(newQuery: String) {
@@ -35,7 +35,7 @@ class SearchManager(private val menu: DiskUsageMenu) {
                 finishedSearch = null
             }
         }
-        
+
         val currentBaseRoot = baseRoot ?: run {
             menu.finishedSearch(null, null)
             return
@@ -48,7 +48,7 @@ class SearchManager(private val menu: DiskUsageMenu) {
                     val root = menu.masterRoot
                     root?.filter(currentQuery, currentBaseRoot.displayBlockSize) as? FileSystemSuperRoot
                 }
-                
+
                 searchFinished(SearchData(currentQuery, newRootResult))
             } catch (ignored: SearchInterruptedException) {
             }

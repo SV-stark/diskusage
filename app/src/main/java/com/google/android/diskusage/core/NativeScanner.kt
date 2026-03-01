@@ -35,7 +35,7 @@ class NativeScanner(
     private val context: Context,
     private val blockSize: Long,
     allocatedBlocks: Long,
-    maxHeap: Int
+    maxHeap: Int,
 ) : ProgressGenerator {
 
     private val blockSizeIn512Bytes: Long = blockSize / 512
@@ -60,7 +60,7 @@ class NativeScanner(
         var parent: FileSystemEntry,
         var children: Array<FileSystemEntry>,
         var heapSize: Int,
-        blocks: Long
+        blocks: Long,
     ) : Comparable<SmallList> {
         var spaceEfficiency: Float = blocks / heapSize.toFloat()
 
@@ -140,7 +140,9 @@ class NativeScanner(
     }
 
     internal enum class Type {
-        NONE, DIR, FILE
+        NONE,
+        DIR,
+        FILE,
     }
 
     @Throws(IOException::class)
@@ -204,7 +206,9 @@ class NativeScanner(
 
     private class SoftStack {
         internal enum class State {
-            PRE_LOOP, LOOP, POST_LOOP
+            PRE_LOOP,
+            LOOP,
+            POST_LOOP,
         }
 
         var state: State = State.PRE_LOOP
@@ -343,7 +347,7 @@ class NativeScanner(
                             s!!.thisNode!!,
                             s!!.smallChildren!!.toTypedArray(),
                             s!!.thisNodeSizeSmall,
-                            s!!.smallBlocks
+                            s!!.smallBlocks,
                         )
                         smallLists.add(list)
                     }
@@ -370,7 +374,7 @@ class NativeScanner(
                     if (s == null) return
                     s!!.dirs = createdNodeNumDirs
                     s!!.files = createdNodeNumFiles
-                    
+
                     val createdNodeBlocks = createdNode?.sizeInBlocks ?: 0L
                     s!!.blocks += createdNodeBlocks
 
@@ -482,7 +486,7 @@ class NativeScanner(
                 thisNode,
                 smallChildren.toTypedArray(),
                 thisNodeSizeSmall,
-                smallBlocks
+                smallBlocks,
             )
             smallLists.add(list)
         }

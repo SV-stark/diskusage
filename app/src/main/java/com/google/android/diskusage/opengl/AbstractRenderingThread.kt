@@ -22,7 +22,7 @@ abstract class AbstractRenderingThread : Thread() {
     }
 
     private val events = ArrayList<Runnable>()
-    
+
     /**
      * True when surfaceAvailable callback was received from surfaceHolder and
      * surfaceDestroyed wasn't yet received.
@@ -72,7 +72,9 @@ abstract class AbstractRenderingThread : Thread() {
     @Throws(InterruptedException::class)
     fun runEvents() {
         while (true) {
-            var e: Runnable = object : Runnable { override fun run() {} }
+            var e: Runnable = object : Runnable {
+                override fun run() {}
+            }
             synchronized(events) {
                 if (events.isEmpty()) {
                     if (stopRenderingThread && !surfaceAvailable) {
@@ -146,17 +148,21 @@ abstract class AbstractRenderingThread : Thread() {
             egl.eglInitialize(eglDisplay, version)
 
             val configSpec = intArrayOf(
-                EGL10.EGL_DEPTH_SIZE, 6,
-                EGL10.EGL_NONE
+                EGL10.EGL_DEPTH_SIZE,
+                6,
+                EGL10.EGL_NONE,
             )
 
-            val matched_configs = arrayOfNulls<EGLConfig>(1)
-            val num_configs = IntArray(1)
-            egl.eglChooseConfig(eglDisplay, configSpec, matched_configs, 1, num_configs)
-            eglConfig = matched_configs[0]!!
+            val matchedConfigs = arrayOfNulls<EGLConfig>(1)
+            val numConfigs = IntArray(1)
+            egl.eglChooseConfig(eglDisplay, configSpec, matchedConfigs, 1, numConfigs)
+            eglConfig = matchedConfigs[0]!!
 
             eglContext = egl.eglCreateContext(
-                eglDisplay, eglConfig, EGL10.EGL_NO_CONTEXT, null
+                eglDisplay,
+                eglConfig,
+                EGL10.EGL_NO_CONTEXT,
+                null,
             )
         }
 
@@ -180,9 +186,10 @@ abstract class AbstractRenderingThread : Thread() {
             Timber.d("*** Destroy Surface ***")
             try {
                 egl.eglMakeCurrent(
-                    eglDisplay, EGL10.EGL_NO_SURFACE,
+                    eglDisplay,
                     EGL10.EGL_NO_SURFACE,
-                    EGL10.EGL_NO_CONTEXT
+                    EGL10.EGL_NO_SURFACE,
+                    EGL10.EGL_NO_CONTEXT,
                 )
                 egl.eglDestroySurface(eglDisplay, surface)
                 egl.eglDestroyContext(eglDisplay, eglContext)

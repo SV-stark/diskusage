@@ -14,7 +14,7 @@ import timber.log.Timber
 @SuppressLint("ViewConstructor")
 class FileSystemViewCPU(
     context: Context,
-    private val eventHandler: FileSystemState
+    private val eventHandler: FileSystemState,
 ) : View(context), FileSystemView {
 
     init {
@@ -28,7 +28,7 @@ class FileSystemViewCPU(
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         Timber.d("onTouchEvent: Touch = %s:%s", ev.x, ev.y)
         eventHandler.onTouchEvent(
-            eventHandler.multitouchHandler.newMyMotionEvent(ev)
+            eventHandler.multitouchHandler.newMyMotionEvent(ev),
         )
         return true
     }

@@ -29,7 +29,7 @@ import java.util.HashMap
 open class MountPoint internal constructor(
     val title: String,
     val root: String,
-    private val forceHasApps: Boolean
+    private val forceHasApps: Boolean,
 ) {
 
     open val isRootRequired: Boolean

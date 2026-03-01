@@ -30,7 +30,7 @@ class FileSystemPackage(
     codeSizeParam: Long,
     dataSizeParam: Long,
     var cacheSize: Long,
-    val flags: Int
+    val flags: Int,
 ) : FileSystemEntry(null, name) {
 
     var codeSize: Long = codeSizeParam
@@ -51,7 +51,7 @@ class FileSystemPackage(
     enum class ChildType {
         CODE,
         DATA,
-        CACHE
+        CACHE,
     }
 
     fun applyFilter(blockSize: Long) {
@@ -60,15 +60,15 @@ class FileSystemPackage(
         val entries = ArrayList<FileSystemEntry>(publicChildren)
         entries.add(
             makeNode(null, "apk")
-                .initSizeInBytes(codeSize, blockSize)
+                .initSizeInBytes(codeSize, blockSize),
         )
         entries.add(
             makeNode(null, "data")
-                .initSizeInBytes(dataSize, blockSize)
+                .initSizeInBytes(dataSize, blockSize),
         )
         entries.add(
             makeNode(null, "cache")
-                .initSizeInBytes(cacheSize, blockSize)
+                .initSizeInBytes(cacheSize, blockSize),
         )
 
         for (e in entries) {
@@ -87,8 +87,12 @@ class FileSystemPackage(
 
     override fun create(): FileSystemEntry {
         return FileSystemPackage(
-            this.name, this.pkg, this.codeSize, this.dataSize, this.cacheSize,
-            this.flags
+            this.name,
+            this.pkg,
+            this.codeSize,
+            this.dataSize,
+            this.cacheSize,
+            this.flags,
         )
     }
 

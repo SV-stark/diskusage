@@ -34,7 +34,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -42,8 +41,6 @@ import com.google.android.diskusage.R
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry
 import timber.log.Timber
 import java.io.File
-import kotlin.io.FileTreeWalk
-import kotlin.io.FileWalkDirection
 
 class DeleteActivity : ComponentActivity() {
 
@@ -60,7 +57,7 @@ class DeleteActivity : ComponentActivity() {
 
         val sizeString = intent.getStringExtra(SIZE_KEY)
         val count = intent.getIntExtra(NUM_FILES_KEY, 0)
-        
+
         val fileInfos = mutableListOf<FileInfo>()
         if (absolutePath != null) {
             val file = File(absolutePath)
@@ -85,20 +82,20 @@ class DeleteActivity : ComponentActivity() {
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text(text = stringResource(R.string.delete_title)) }
+                            title = { Text(text = stringResource(R.string.delete_title)) },
                         )
-                    }
+                    },
                 ) { innerPadding ->
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding)
-                            .padding(16.dp)
+                            .padding(16.dp),
                     ) {
                         Text(
                             text = getString(R.string.delete_summary, count, sizeString),
                             style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(bottom = 16.dp)
+                            modifier = Modifier.padding(bottom = 16.dp),
                         )
 
                         LazyColumn(modifier = Modifier.weight(1f)) {
@@ -112,21 +109,20 @@ class DeleteActivity : ComponentActivity() {
                                 setResult(DiskUsage.RESULT_DELETE_CONFIRMED, responseIntent)
                                 finish()
                             },
-                            modifier = Modifier.padding(top = 16.dp)
+                            modifier = Modifier.padding(top = 16.dp),
                         ) {
                             Text(stringResource(R.string.action_delete))
                         }
-                        
+
                         Button(
                             onClick = {
                                 setResult(DiskUsage.RESULT_DELETE_CANCELED)
                                 finish()
                             },
-                            modifier = Modifier.padding(top = 8.dp)
+                            modifier = Modifier.padding(top = 8.dp),
                         ) {
                             Text(stringResource(R.string.action_cancel))
                         }
-
                     }
                 }
             }

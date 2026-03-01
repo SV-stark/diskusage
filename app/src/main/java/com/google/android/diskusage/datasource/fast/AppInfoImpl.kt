@@ -6,7 +6,7 @@ import com.google.android.diskusage.datasource.AppInfo
 
 class AppInfoImpl(
     private val app: ApplicationInfo,
-    private val pm: PackageManager
+    private val pm: PackageManager,
 ) : AppInfo {
     override val flags: Int
         get() = app.flags

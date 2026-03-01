@@ -7,7 +7,7 @@ object DeviceHelper {
     private val suLocations = arrayOf(
         "/system/bin/", "/system/xbin/", "/sbin/", "/system/sd/xbin/",
         "/system/bin/failsafe/", "/data/local/xbin/", "/data/local/bin/", "/data/local/",
-        "/system/sbin/", "/usr/bin/", "/vendor/bin/"
+        "/system/sbin/", "/usr/bin/", "/vendor/bin/",
     )
 
     @JvmStatic

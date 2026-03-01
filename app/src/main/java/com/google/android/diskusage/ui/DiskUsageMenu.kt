@@ -4,9 +4,7 @@ import android.app.AlertDialog
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.Drawable
-import android.os.Build
 import android.os.Bundle
-import android.os.Process
 import android.text.Html
 import android.view.Menu
 import android.view.MenuItem
@@ -14,17 +12,15 @@ import android.view.View
 import android.widget.SearchView
 import androidx.core.view.forEach
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
 import com.google.android.diskusage.R
-
 import com.google.android.diskusage.datasource.SearchManager
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry
 import com.google.android.diskusage.filesystem.entity.FileSystemSpecial
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot
 import com.google.android.diskusage.filesystem.mnt.MountPoint
-import com.google.android.diskusage.utils.AppIconCache.getOrLoadBitmap
 import com.google.android.diskusage.utils.ThemeHelper
 import com.google.android.diskusage.utils.item
+import kotlinx.coroutines.launch
 import splitties.resources.styledColor
 import timber.log.Timber
 
@@ -56,7 +52,7 @@ class DiskUsageMenu(val diskusage: DiskUsage) {
             R.string.button_search,
             android.R.drawable.ic_search_category_default,
             iconTint,
-            true
+            true,
         ).apply {
             actionView = SearchView(diskusage).also {
                 searchView = it
@@ -198,7 +194,7 @@ class DiskUsageMenu(val diskusage: DiskUsage) {
             tv.setPadding(32, 32, 32, 32)
             val htmlText = diskusage.getString(
                 R.string.about_view_source_code,
-                "<b><a href=\"https://github.com/IvanVolosyuk/diskusage\">GitHub</a></b>"
+                "<b><a href=\"https://github.com/IvanVolosyuk/diskusage\">GitHub</a></b>",
             )
             tv.text = Html.fromHtml(htmlText, Html.FROM_HTML_MODE_LEGACY)
             tv.movementMethod = android.text.method.LinkMovementMethod.getInstance()
@@ -208,7 +204,7 @@ class DiskUsageMenu(val diskusage: DiskUsage) {
             } catch (e: PackageManager.NameNotFoundException) {
                 Timber.e(e, "Package '\${diskusage.packageName}' not found")
             }
-            
+
             AlertDialog.Builder(diskusage)
                 .setTitle("DiskUsage \$version")
                 .setView(tv)

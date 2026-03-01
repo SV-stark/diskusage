@@ -44,6 +44,7 @@ class RootMountPoint internal constructor(root: String, fsType: String) : MountP
         private var rootedMountPoints: MutableList<MountPoint> = ArrayList()
         private var rootedMountPointForKey: MutableMap<String, MountPoint> = HashMap()
         private var init = false
+
         @JvmField
         var checksum: Int = 0
 

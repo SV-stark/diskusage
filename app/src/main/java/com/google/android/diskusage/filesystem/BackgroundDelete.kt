@@ -33,7 +33,7 @@ import java.io.IOException
  */
 class BackgroundDelete private constructor(
     private val diskUsage: DiskUsage,
-    private val entry: FileSystemEntry
+    private val entry: FileSystemEntry,
 ) {
 
     private var dialog: ProgressDialog? = null
@@ -78,10 +78,12 @@ class BackgroundDelete private constructor(
         progressDialog.setMessage(appStr(R.string.deleting_path, path))
         progressDialog.isIndeterminate = true
         progressDialog.setButton(
-            DialogInterface.BUTTON_POSITIVE, diskUsage.getString(R.string.button_background)
+            DialogInterface.BUTTON_POSITIVE,
+            diskUsage.getString(R.string.button_background),
         ) { d, _ -> d.dismiss() }
         progressDialog.setButton(
-            DialogInterface.BUTTON_NEGATIVE, diskUsage.getString(android.R.string.cancel)
+            DialogInterface.BUTTON_NEGATIVE,
+            diskUsage.getString(android.R.string.cancel),
         ) { d, _ ->
             cancelDeletion = true
             d.dismiss()
@@ -131,7 +133,7 @@ class BackgroundDelete private constructor(
         val displayBlockSize = diskUsage.fileSystemState?.masterRoot?.displayBlockSize ?: 512
         try {
             val newEntry = Scanner(20, displayBlockSize, 0, 4).scan(
-                LegacyFileImpl.createRoot(mountPoint.root + "/" + path)
+                LegacyFileImpl.createRoot(mountPoint.root + "/" + path),
             )
             newEntry?.let { entry ->
                 entry.parent?.insert(entry, displayBlockSize)
@@ -147,13 +149,13 @@ class BackgroundDelete private constructor(
         Timber.d("notifyUser: Delete: status=%s dirs=%s files=%s", status, numDeletedDirectories, numDeletedFiles)
         when (status) {
             DELETION_SUCCESS -> longToast(
-                appStr(R.string.deleted_n_directories_and_n_files, numDeletedDirectories, numDeletedFiles)
+                appStr(R.string.deleted_n_directories_and_n_files, numDeletedDirectories, numDeletedFiles),
             )
             DELETION_CANCELED -> longToast(
-                appStr(R.string.deleted_n_directories_and_files_and_canceled, numDeletedDirectories, numDeletedFiles)
+                appStr(R.string.deleted_n_directories_and_files_and_canceled, numDeletedDirectories, numDeletedFiles),
             )
             else -> longToast(
-                appStr(R.string.deleted_n_directories_and_n_files_and_failed, numDeletedDirectories, numDeletedFiles)
+                appStr(R.string.deleted_n_directories_and_n_files_and_failed, numDeletedDirectories, numDeletedFiles),
             )
         }
     }

@@ -41,7 +41,7 @@ class NativeScannerStream(private val process: Process) :
 
         private fun getLibscanPath(): String? {
             return try {
-                appContext.applicationInfo?.nativeLibraryDir?.let { "${it}/${LIBSCAN}" }
+                appContext.applicationInfo?.nativeLibraryDir?.let { "$it/$LIBSCAN" }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to get native library path")
                 null
@@ -62,7 +62,7 @@ class NativeScannerStream(private val process: Process) :
             if (libscanPath == null) {
                 throw IOException("Native library path not available")
             }
-            
+
             val process = if (!(rootRequired && isDeviceRooted())) {
                 Runtime.getRuntime().exec(arrayOf(libscanPath, root))
             } else {

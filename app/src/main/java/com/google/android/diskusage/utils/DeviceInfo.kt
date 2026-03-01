@@ -29,7 +29,7 @@ object DeviceInfo {
                         Configuration.ORIENTATION_UNDEFINED -> "Undefined"
                         else -> "Unknown"
                     }
-                }"
+                }",
             )
         }
 }

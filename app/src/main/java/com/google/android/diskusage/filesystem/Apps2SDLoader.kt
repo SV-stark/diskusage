@@ -54,7 +54,9 @@ class Apps2SDLoader(private val diskUsage: DiskUsage) {
                 // Volatile write — visible to progress coroutine on next read
                 lastAppName = metadata.loadLabel(packageManager).toString()
                 val stats = storageStatsManager.queryStatsForPackage(
-                    StorageManager.UUID_DEFAULT, pkg, Process.myUserHandle()
+                    StorageManager.UUID_DEFAULT,
+                    pkg,
+                    Process.myUserHandle(),
                 )
                 Timber.d("stats: ${stats.appBytes} ${stats.dataBytes}")
                 val p = FileSystemPackage(
@@ -63,7 +65,7 @@ class Apps2SDLoader(private val diskUsage: DiskUsage) {
                     stats.appBytes,
                     stats.dataBytes,
                     stats.cacheBytes,
-                    metadata.flags
+                    metadata.flags,
                 )
                 p.applyFilter(blockSize)
                 entries.add(p)

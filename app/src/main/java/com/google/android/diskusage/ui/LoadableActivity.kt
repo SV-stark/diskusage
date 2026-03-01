@@ -26,22 +26,23 @@ import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.google.android.diskusage.R
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry
 import com.google.android.diskusage.filesystem.entity.FileSystemPackage
 import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot
 import com.google.android.diskusage.ui.common.ScanProgressDialog
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import splitties.toast.toast
 import timber.log.Timber
 import java.io.IOException
 import java.util.TreeMap
 
 abstract class LoadableActivity : AppCompatActivity() {
-    var pkg_removed: FileSystemPackage? = null
+    var pkgRemoved: FileSystemPackage? = null
+
     @Suppress("MemberVisibilityCanBePrivate")
     internal val handler = Handler(Looper.getMainLooper())
 
@@ -72,7 +73,8 @@ abstract class LoadableActivity : AppCompatActivity() {
         }
 
     fun loadFiles(
-        runAfterLoad: ((FileSystemSuperRoot, Boolean) -> Unit)?, force: Boolean
+        runAfterLoad: ((FileSystemSuperRoot, Boolean) -> Unit)?,
+        force: Boolean,
     ) {
         val scanRunning: Boolean
         val state = persistentState
@@ -132,7 +134,7 @@ abstract class LoadableActivity : AppCompatActivity() {
                     return@launch
                 }
                 state.root = newRoot
-                pkg_removed = null
+                pkgRemoved = null
                 Timber.d("loadFiles: Run afterLoad = %s", afterLoadCopy)
                 afterLoadCopy?.invoke(state.root!!, false)
                 return@launch
@@ -177,12 +179,12 @@ abstract class LoadableActivity : AppCompatActivity() {
     }
 
     private fun handleEmptySDCard(
-        afterLoad: ((FileSystemSuperRoot, Boolean) -> Unit)?
+        afterLoad: ((FileSystemSuperRoot, Boolean) -> Unit)?,
     ) {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.empty_or_missing_sdcard))
             .setPositiveButton(
-                getString(R.string.button_rescan)
+                getString(R.string.button_rescan),
             ) { dialog, which ->
                 if (afterLoad == null) throw RuntimeException("LoadableActivity.handleEmptySDCard(): afterLoad is empty")
                 loadFiles(afterLoad, true)

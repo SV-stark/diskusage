@@ -43,7 +43,7 @@ class AdaptiveTextView(context: Context, attrs: AttributeSet?) : AppCompatTextVi
         if (textSize > size) {
             setTextSize(
                 TypedValue.COMPLEX_UNIT_PX,
-                originalTextFont / textSize * size
+                originalTextFont / textSize * size,
             )
         }
     }

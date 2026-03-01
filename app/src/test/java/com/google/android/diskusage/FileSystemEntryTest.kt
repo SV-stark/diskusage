@@ -1,6 +1,5 @@
 package com.google.android.diskusage
 
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 

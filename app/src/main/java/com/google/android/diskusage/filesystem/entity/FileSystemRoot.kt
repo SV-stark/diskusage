@@ -38,8 +38,9 @@ open class FileSystemRoot protected constructor(name: String?, val rootPath: Str
         @JvmStatic
         fun withSlash(path: String): String {
             var finalPath = path
-            if (finalPath.isNotEmpty() && finalPath[finalPath.length - 1] != '/')
+            if (finalPath.isNotEmpty() && finalPath[finalPath.length - 1] != '/') {
                 finalPath += '/'
+            }
             return finalPath
         }
     }

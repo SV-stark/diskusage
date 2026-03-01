@@ -22,7 +22,7 @@ import javax.microedition.khronos.opengles.GL10
 
 class RenderingThread(
     private val context: Context,
-    private val eventHandler: FileSystemState
+    private val eventHandler: FileSystemState,
 ) : AbstractRenderingThread() {
 
     private val indicies: ShortBuffer
@@ -38,7 +38,7 @@ class RenderingThread(
     var matrix: FloatArray = FloatArray(16)
 
     //  private float[] dirVertexes = new float[MAX_VERTEX * 3];
-    //private float[] fileVertexes = new float[MAX_VERTEX * 3];
+    // private float[] fileVertexes = new float[MAX_VERTEX * 3];
     private val textureVertexes = FloatArray(4 * 3)
 
     private var currentBitmapMap: BitmapMap? = null
@@ -49,7 +49,7 @@ class RenderingThread(
     var textBaseline: Float = 0f
     var bitmaps: ArrayList<BitmapMap> = ArrayList()
 
-    private var max_usage: Float = 0f
+    private var maxUsage: Float = 0f
 
     fun updateFonts(context: Context) {
         val scaledDensity = context.resources.displayMetrics.scaledDensity
@@ -83,7 +83,7 @@ class RenderingThread(
         if (textSize < defaultSize) textSize = defaultSize
 
         // For very high DPI devices, we might want to check if the physical size of letters is sufficient
-        // Let's say, 20 px font on 300 dpi devices seems readable enough: 
+        // Let's say, 20 px font on 300 dpi devices seems readable enough:
         if (textSize.toFloat() / dpi.toFloat() < 20.0f / 300.0f) {
             textSize = (20.0f / 300.0f * dpi).toFloat()
         }
@@ -120,9 +120,13 @@ class RenderingThread(
         for (i in 0 until MAX_RECTS) {
             indicies.put(
                 shortArrayOf(
-                    (vertex).toShort(), (1 + vertex).toShort(), (2 + vertex).toShort(),
-                    (vertex).toShort(), (2 + vertex).toShort(), (3 + vertex).toShort()
-                )
+                    (vertex).toShort(),
+                    (1 + vertex).toShort(),
+                    (2 + vertex).toShort(),
+                    (vertex).toShort(),
+                    (2 + vertex).toShort(),
+                    (3 + vertex).toShort(),
+                ),
             )
 
             for (x in 0..3) {
@@ -137,7 +141,12 @@ class RenderingThread(
     }
 
     fun drawVertexes(
-        out: FloatArray, pos: Int, x0: Float, y0: Float, x1: Float, y1: Float
+        out: FloatArray,
+        pos: Int,
+        x0: Float,
+        y0: Float,
+        x1: Float,
+        y1: Float,
     ) {
         out[pos] = x0
         out[pos + 1] = y0
@@ -154,11 +163,11 @@ class RenderingThread(
 
     inner class Square(resid: Int) {
         var nrects: Int = 0
-        val texture_id: Int
+        val textureId: Int
         val vertexes: FloatArray = FloatArray(MAX_VERTEX * 3)
 
         init {
-            texture_id = LoadTexture(getBitmap(resid))
+            textureId = loadTexture(getBitmap(resid))
         }
 
         fun draw(x0: Float, y0: Float, x1: Float, y1: Float) {
@@ -175,12 +184,14 @@ class RenderingThread(
             if (nrects == 0) return
             val gl = this@RenderingThread.gl ?: return
             gl.glTexCoordPointer(2, GL10.GL_FLOAT, 0, texCoords)
-            gl.glBindTexture(GL10.GL_TEXTURE_2D, texture_id)
+            gl.glBindTexture(GL10.GL_TEXTURE_2D, textureId)
             vertexBuffer.put(vertexes, 0, nrects * 12)
             vertexBuffer.position(0)
             gl.glDrawElements(
-                GL10.GL_TRIANGLES, nrects * 6,
-                GL10.GL_UNSIGNED_SHORT, indicies
+                GL10.GL_TRIANGLES,
+                nrects * 6,
+                GL10.GL_UNSIGNED_SHORT,
+                indicies,
             )
             nrects = 0
         }
@@ -188,21 +199,21 @@ class RenderingThread(
 
     inner class SmallSquare(resid: Int) {
         var nrects: Int = 0
-        val texture_id: Int
+        val textureId: Int
         val vertexes: FloatArray = FloatArray(MAX_VERTEX * 3)
         private val texSmallCoordsBuffer: FloatBuffer
         val texSmallCoords: FloatArray = FloatArray(MAX_VERTEX * 2)
 
         init {
-            texture_id = LoadTexture(getBitmap(resid))
+            textureId = loadTexture(getBitmap(resid))
             val tbb = ByteBuffer.allocateDirect(
-                MAX_VERTEX * SIZEOF_FLOAT * 2
+                MAX_VERTEX * SIZEOF_FLOAT * 2,
             )
             tbb.order(ByteOrder.nativeOrder())
             texSmallCoordsBuffer = tbb.asFloatBuffer()
             for (i in 0 until MAX_RECTS) {
                 // 0 1  2 3  4 5  6 7
-                // 0 0, 1 0, 1 n, 0 n 
+                // 0 0, 1 0, 1 n, 0 n
                 texSmallCoords[i * 8 + 2] = 1f
                 texSmallCoords[i * 8 + 4] = 1f
             }
@@ -226,12 +237,14 @@ class RenderingThread(
             texSmallCoordsBuffer.put(texSmallCoords, 0, nrects * 8)
             texSmallCoordsBuffer.position(0)
             gl.glTexCoordPointer(2, GL10.GL_FLOAT, 0, texSmallCoordsBuffer)
-            gl.glBindTexture(GL10.GL_TEXTURE_2D, texture_id)
+            gl.glBindTexture(GL10.GL_TEXTURE_2D, textureId)
             vertexBuffer.put(vertexes, 0, nrects * 12)
             vertexBuffer.position(0)
             gl.glDrawElements(
-                GL10.GL_TRIANGLES, nrects * 6,
-                GL10.GL_UNSIGNED_SHORT, indicies
+                GL10.GL_TRIANGLES,
+                nrects * 6,
+                GL10.GL_UNSIGNED_SHORT,
+                indicies,
             )
             nrects = 0
         }
@@ -239,19 +252,24 @@ class RenderingThread(
 
     inner class CursorFrame {
         private val white: Int
+
         //    private val int black;
         private var dirty = false
         private val vertexes = FloatArray(4 * 4 * 3)
 
-
         init {
-            white = LoadTexture(getBitmap(R.drawable.white_gradient))
-            //      black = LoadTexture(getBitmap(R.drawable.black_gradient));
+            white = loadTexture(getBitmap(R.drawable.white_gradient))
+            //      black = loadTexture(getBitmap(R.drawable.black_gradient));
         }
 
         fun drawVertexes(
-            pos: Int, x0: Float, y0: Float,
-            xoff1: Float, yoff1: Float, xoff2: Float, yoff2: Float
+            pos: Int,
+            x0: Float,
+            y0: Float,
+            xoff1: Float,
+            yoff1: Float,
+            xoff2: Float,
+            yoff2: Float,
         ) {
             vertexes[pos] = x0
             vertexes[pos + 1] = y0
@@ -284,15 +302,19 @@ class RenderingThread(
             vertexBuffer.put(vertexes, 2 * 12, 2 * 12)
             vertexBuffer.position(0)
             gl.glDrawElements(
-                GL10.GL_TRIANGLES, 2 * 6,
-                GL10.GL_UNSIGNED_SHORT, indicies
+                GL10.GL_TRIANGLES,
+                2 * 6,
+                GL10.GL_UNSIGNED_SHORT,
+                indicies,
             )
             gl.glTexCoordPointer(2, GL10.GL_FLOAT, 0, texCoords)
             vertexBuffer.put(vertexes, 0, 2 * 12)
             vertexBuffer.position(0)
             gl.glDrawElements(
-                GL10.GL_TRIANGLES, 2 * 6,
-                GL10.GL_UNSIGNED_SHORT, indicies
+                GL10.GL_TRIANGLES,
+                2 * 6,
+                GL10.GL_UNSIGNED_SHORT,
+                indicies,
             )
             gl.glDisable(GL10.GL_BLEND)
         }
@@ -309,11 +331,12 @@ class RenderingThread(
         var textPixelsArray: ArrayList<TextPixels> = ArrayList()
         var textureid: Int = 0
         var usage: Int = 0
+
         // int last_usage;
         var y: Int = 0
         var x: Int = 0
-        var build_x: Int = 0
-        var build_y: Int = 0
+        var buildX: Int = 0
+        var buildY: Int = 0
         var bitmap: Bitmap? = null
         var canvas: Canvas? = null
         var texCoords: FloatArray = FloatArray(MAX_TEXT_TEXCOORDS)
@@ -327,7 +350,6 @@ class RenderingThread(
             edit()
         }
 
-
         var clearPaint: Paint = Paint().apply {
             xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
         }
@@ -335,7 +357,9 @@ class RenderingThread(
         fun edit() {
             if (editedBitmap == null) {
                 editedBitmap = Bitmap.createBitmap(
-                    TEXTURE_SIZE, TEXTURE_SIZE, Bitmap.Config.ARGB_8888
+                    TEXTURE_SIZE,
+                    TEXTURE_SIZE,
+                    Bitmap.Config.ARGB_8888,
                 )
                 editedCanvas = Canvas(editedBitmap!!)
             } else {
@@ -375,12 +399,13 @@ class RenderingThread(
             textTexCoords.position(0)
             vertexBuffer.position(0)
             gl.glDrawElements(
-                GL10.GL_TRIANGLES, nrect * 6,
-                GL10.GL_UNSIGNED_SHORT, indicies
+                GL10.GL_TRIANGLES,
+                nrect * 6,
+                GL10.GL_UNSIGNED_SHORT,
+                indicies,
             )
             nrect = 0
             gl.glDisable(GL10.GL_BLEND)
-
         }
 
         fun flush() {
@@ -400,16 +425,19 @@ class RenderingThread(
             gl.glBindTexture(GL10.GL_TEXTURE_2D, textureid)
             GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, bitmap, 0)
             gl.glTexEnvf(
-                GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE,
-                GL10.GL_REPLACE.toFloat()
+                GL10.GL_TEXTURE_ENV,
+                GL10.GL_TEXTURE_ENV_MODE,
+                GL10.GL_REPLACE.toFloat(),
             )
             gl.glTexParameterx(
                 GL10.GL_TEXTURE_2D,
-                GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_NEAREST
+                GL10.GL_TEXTURE_MAG_FILTER,
+                GL10.GL_NEAREST,
             )
             gl.glTexParameterx(
                 GL10.GL_TEXTURE_2D,
-                GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST
+                GL10.GL_TEXTURE_MIN_FILTER,
+                GL10.GL_NEAREST,
             )
         }
 
@@ -428,8 +456,8 @@ class RenderingThread(
 
         override fun compareTo(other: BitmapMap): Int {
             val score = score()
-            val another_score = other.score()
-            return Integer.compare(score, another_score)
+            val anotherScore = other.score()
+            return Integer.compare(score, anotherScore)
         }
 
         fun destroy() {
@@ -469,7 +497,7 @@ class RenderingThread(
 
         //    float bitmapUsage = bitmaps.get(0).last_usage / max_usage;
         //    if (bitmapUsage < 0.2 && hasReusableBitmap()) {
-        ////      Log.d("diskusage", "get least used bitmap, usage = " + bitmapUsage);
+        // //      Log.d("diskusage", "get least used bitmap, usage = " + bitmapUsage);
         //      currentBitmapMap = getLeastUsedBitmap();
         //      return;
         //    }
@@ -481,6 +509,7 @@ class RenderingThread(
     inner class TextPixels {
         private val message: String?
         private val offset: Int
+
         // Reminder of size after removing offset
         private var size: Int
 
@@ -506,7 +535,6 @@ class RenderingThread(
             this.message = message
             this.size = size
             this.offset = offset
-
         }
 
         fun draw(rt: RenderingThread, x0: Float, y0: Float, elementWidth: Float) {
@@ -529,9 +557,11 @@ class RenderingThread(
                 canvas?.save()
                 canvas?.clipRect(
                     Rect(
-                        mapX - 1, mapY,
-                        mapX + drawing + 1, mapY + textHeight
-                    )
+                        mapX - 1,
+                        mapY,
+                        mapX + drawing + 1,
+                        mapY + textHeight,
+                    ),
                 )
                 if (message != null) {
                     canvas?.drawText(message, mapX - offset + padding.toFloat(), mapY + textBaseline, textPaint)
@@ -550,24 +580,28 @@ class RenderingThread(
             val todraw = Math.min(size, elementWidthInt)
             val drawing = Math.min(todraw, mapSize)
             bitmapMap!!.usage += drawing
-            val tex_x0 = mapX * divTexSize
-            val tex_y0 = mapY * divTexSize
-            val tex_x1 = (mapX + drawing) * divTexSize
-            val tex_y1 = (mapY + textHeight) * divTexSize
+            val texX0 = mapX * DIV_TEX_SIZE
+            val texY0 = mapY * DIV_TEX_SIZE
+            val texX1 = (mapX + drawing) * DIV_TEX_SIZE
+            val texY1 = (mapY + textHeight) * DIV_TEX_SIZE
             val nrect = bitmapMap!!.nrect
             val off = nrect * 8
             val texCoordsArray = bitmapMap!!.texCoords
-            texCoordsArray[off] = tex_x0
-            texCoordsArray[off + 1] = tex_y0
-            texCoordsArray[off + 2] = tex_x1
-            texCoordsArray[off + 3] = tex_y0
-            texCoordsArray[off + 4] = tex_x1
-            texCoordsArray[off + 5] = tex_y1
-            texCoordsArray[off + 6] = tex_x0
-            texCoordsArray[off + 7] = tex_y1
+            texCoordsArray[off] = texX0
+            texCoordsArray[off + 1] = texY0
+            texCoordsArray[off + 2] = texX1
+            texCoordsArray[off + 3] = texY0
+            texCoordsArray[off + 4] = texX1
+            texCoordsArray[off + 5] = texY1
+            texCoordsArray[off + 6] = texX0
+            texCoordsArray[off + 7] = texY1
             rt.drawVertexes(
-                bitmapMap!!.vertexes, nrect * 12,
-                x0, y0 - textBaseline, x0 + drawing, y0 + textHeight - rt.textBaseline
+                bitmapMap!!.vertexes,
+                nrect * 12,
+                x0,
+                y0 - textBaseline,
+                x0 + drawing,
+                y0 + textHeight - rt.textBaseline,
             )
 
             val newrect = nrect + 1
@@ -589,15 +623,19 @@ class RenderingThread(
         vertexBuffer.put(textureVertexes, 0, 12)
         vertexBuffer.position(0)
         gl.glDrawElements(
-            GL10.GL_TRIANGLES, 6,
-            GL10.GL_UNSIGNED_SHORT, indicies
+            GL10.GL_TRIANGLES,
+            6,
+            GL10.GL_UNSIGNED_SHORT,
+            indicies,
         )
     }
 
     fun getBitmap(resid: Int): Bitmap {
         val drawable = context.resources.getDrawable(resid, null)
         val bitmap = Bitmap.createBitmap(
-            16, 16, Bitmap.Config.ARGB_8888
+            16,
+            16,
+            Bitmap.Config.ARGB_8888,
         )
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.TRANSPARENT)
@@ -606,30 +644,33 @@ class RenderingThread(
         return bitmap
     }
 
-    private fun LoadTexture(bitmap: Bitmap): Int {
+    private fun loadTexture(bitmap: Bitmap): Int {
         val gl = this.gl ?: return 0
-        val texture_id = newTextureId()
+        val textureId = newTextureId()
         //    Bitmap bitmap = getBitmap(resid);
 
-        gl.glBindTexture(GL10.GL_TEXTURE_2D, texture_id)
+        gl.glBindTexture(GL10.GL_TEXTURE_2D, textureId)
         GLUtils.texImage2D(GL10.GL_TEXTURE_2D, 0, bitmap, 0)
         gl.glTexEnvf(
-            GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE,
-            GL10.GL_REPLACE.toFloat()
+            GL10.GL_TEXTURE_ENV,
+            GL10.GL_TEXTURE_ENV_MODE,
+            GL10.GL_REPLACE.toFloat(),
         )
         bitmap.recycle()
         gl.glTexParameterx(
             GL10.GL_TEXTURE_2D,
-            GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR
+            GL10.GL_TEXTURE_MAG_FILTER,
+            GL10.GL_LINEAR,
         )
         gl.glTexParameterx(
             GL10.GL_TEXTURE_2D,
-            GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_LINEAR
+            GL10.GL_TEXTURE_MIN_FILTER,
+            GL10.GL_LINEAR,
         )
-        return texture_id
+        return textureId
     }
 
-    private fun LoadTextures(gl: GL10?) {
+    private fun loadTextures(gl: GL10?) {
         dirSquare = Square(R.drawable.dirbg_new)
         fileSquare = Square(R.drawable.filebg_new)
         specialSquare = Square(R.drawable.special)
@@ -675,7 +716,7 @@ class RenderingThread(
     override fun createResources(gl: GL10?) {
         Timber.d("***** Surface Created *****")
         // Load textures
-        LoadTextures(gl)
+        loadTextures(gl)
     }
 
     override fun releaseResources(gl: GL10?) {
@@ -695,11 +736,10 @@ class RenderingThread(
 
         gl.glHint(
             GL10.GL_PERSPECTIVE_CORRECTION_HINT,
-            GL10.GL_FASTEST
+            GL10.GL_FASTEST,
         )
         gl.glViewport(0, 0, width, height)
         Timber.d("sizeChanged: Updated viewport = %s x %s", width, height)
-
 
         gl.glMatrixMode(GL10.GL_PROJECTION)
         gl.glLoadIdentity()
@@ -717,7 +757,6 @@ class RenderingThread(
         gl.glLoadMatrixf(matrix, 0)
 
         gl.glMatrixMode(GL10.GL_MODELVIEW)
-
 
         gl.glEnable(GL10.GL_DITHER)
         gl.glEnable(GL10.GL_CULL_FACE)
@@ -740,7 +779,7 @@ class RenderingThread(
             floatArrayOf(0.1f, 0.2f, 0f),
             floatArrayOf(0.9f, 0.2f, 0f),
             floatArrayOf(0.9f, 0.9f, 0f),
-            floatArrayOf(0.1f, 0.9f, 0f)
+            floatArrayOf(0.1f, 0.9f, 0f),
         )
 
         private const val TEXTURE_SIZE = 1 shl 7
@@ -758,15 +797,15 @@ class RenderingThread(
         private const val MAX_TEXT_TEXCOORDS = MAX_TEXT_VERTEXES * 2
 
         private val textPaint = Paint()
-        private val padding = FileSystemEntry.padding
+        private val PADDING_VAL = FileSystemEntry.PADDING
 
-        private const val divTexSize = 1.0f / TEXTURE_SIZE
+        private const val DIV_TEX_SIZE = 1.0f / TEXTURE_SIZE
 
         init {
             textPaint.color = Color.parseColor("#FFFFFF")
             textPaint.style = Paint.Style.FILL_AND_STROKE
             textPaint.flags = textPaint.flags or Paint.ANTI_ALIAS_FLAG
-            textPaint.setShadowLayer(padding.toFloat(), 1f, 1f, Color.BLACK)
+            textPaint.setShadowLayer(PADDING_VAL.toFloat(), 1f, 1f, Color.BLACK)
             //    textBgPaint.setColor(Color.parseColor("#000000"));
             //    textBgPaint.setStyle(Paint.Style.STROKE);
             //    textBgPaint.setFlags(textPaint.getFlags() | Paint.ANTI_ALIAS_FLAG);

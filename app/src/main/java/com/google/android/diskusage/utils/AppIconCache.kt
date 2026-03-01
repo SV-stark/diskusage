@@ -9,12 +9,19 @@ import android.os.Build
 import android.widget.ImageView
 import androidx.collection.LruCache
 import com.google.android.diskusage.R
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.zhanghai.android.appiconloader.AppIconLoader
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
-object AppIconCache: CoroutineScope by MainScope() {
+object AppIconCache : CoroutineScope by MainScope() {
     private class AppIconLruCache constructor(maxSize: Int) : LruCache<Triple<String, Int, Int>, Bitmap>(maxSize) {
         override fun sizeOf(key: Triple<String, Int, Int>, bitmap: Bitmap): Int {
             return bitmap.byteCount / 1024
@@ -81,14 +88,19 @@ object AppIconCache: CoroutineScope by MainScope() {
     }
 
     @JvmStatic
-    fun loadIconBitmapAsync(context: Context,
-                            info: ApplicationInfo, userId: Int,
-                            view: ImageView
+    fun loadIconBitmapAsync(
+        context: Context,
+        info: ApplicationInfo,
+        userId: Int,
+        view: ImageView,
     ): Job {
         return launch {
             val size = view.measuredWidth.let {
-                if (it > 0) it
-                else context.resources.getDimensionPixelSize(R.dimen.default_app_icon_size)
+                if (it > 0) {
+                    it
+                } else {
+                    context.resources.getDimensionPixelSize(R.dimen.default_app_icon_size)
+                }
             }
             val cachedBitmap = get(info.packageName, userId, size)
             if (cachedBitmap != null) {

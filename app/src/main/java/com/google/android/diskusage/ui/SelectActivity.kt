@@ -24,25 +24,24 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import com.google.android.diskusage.R
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry
 import com.google.android.diskusage.filesystem.mnt.MountPoint
 import com.google.android.diskusage.filesystem.mnt.RootMountPoint
 import com.google.android.diskusage.utils.DeviceHelper
 import com.google.android.diskusage.utils.IOHelper
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.io.BufferedReader
 import java.util.ArrayList
 import java.util.TreeMap
 
@@ -79,7 +78,6 @@ class SelectActivity : ComponentActivity() {
 
     var mountsUpdateJob: Job? = null
 
-
     fun makeDialog() {
         val options = ArrayList<String>()
         actionList.clear()
@@ -111,10 +109,12 @@ class SelectActivity : ComponentActivity() {
                 actionList.add(ShowHideAction())
             } else {
                 options.add("[Root required]")
-                actionList.add(Runnable {
-                    expandRootMountPoints = true
-                    makeDialog()
-                })
+                actionList.add(
+                    Runnable {
+                        expandRootMountPoints = true
+                        makeDialog()
+                    },
+                )
             }
         }
 
@@ -122,7 +122,7 @@ class SelectActivity : ComponentActivity() {
 
         dialog = AlertDialog.Builder(this)
             .setItems(
-                optionsArray
+                optionsArray,
             ) { dialog, which -> actionList[which].run() }
             .setTitle(R.string.ask_view)
             .setOnCancelListener { dialog -> finish() }.create()
@@ -149,12 +149,12 @@ class SelectActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         FileSystemEntry.setupStrings(this)
-        
+
         setContent {
             MaterialTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.background,
                 ) {
                     Box(modifier = Modifier.fillMaxSize())
                 }
@@ -167,7 +167,7 @@ class SelectActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         makeDialog()
-        
+
         mountsUpdateJob = lifecycleScope.launch {
             while (isActive) {
                 var reload = false

@@ -14,7 +14,7 @@ fun MenuItem.setup(
     @DrawableRes icon: Int,
     @ColorInt iconTint: Int,
     showAsAction: Boolean,
-    onClick: Function0<Any?>?
+    onClick: Function0<Any?>?,
 ): MenuItem {
     if (icon != 0 && iconTint != 0) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -41,7 +41,7 @@ fun Menu.item(
     @DrawableRes icon: Int = 0,
     @ColorInt iconTint: Int = 0,
     showAsAction: Boolean = false,
-    onClick: Function0<Any?>? = null
+    onClick: Function0<Any?>? = null,
 ): MenuItem {
     val item = add(title).setup(icon, iconTint, showAsAction, onClick)
     return item
@@ -52,7 +52,7 @@ fun Menu.item(
     @DrawableRes icon: Int = 0,
     @ColorInt iconTint: Int = 0,
     showAsAction: Boolean = false,
-    onClick: Function0<Any?>? = null
+    onClick: Function0<Any?>? = null,
 ): MenuItem {
     val item = add(title).setup(icon, iconTint, showAsAction, onClick)
     return item
@@ -63,7 +63,7 @@ fun Menu.subMenu(
     @DrawableRes icon: Int,
     @ColorInt iconTint: Int,
     showAsAction: Boolean = false,
-    initSubMenu: SubMenu.() -> Unit
+    initSubMenu: SubMenu.() -> Unit,
 ): SubMenu {
     val sub = addSubMenu(title)
     sub.item.setup(icon, iconTint, showAsAction, null)

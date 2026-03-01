@@ -10,7 +10,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.FileUriExposedException
-import android.os.Handler
 import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
@@ -18,9 +17,6 @@ import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import com.google.android.diskusage.BuildConfig
 import com.google.android.diskusage.R
 import com.google.android.diskusage.core.NativeScanner
@@ -30,14 +26,25 @@ import com.google.android.diskusage.datasource.fast.LegacyFileImpl
 import com.google.android.diskusage.datasource.fast.StatFsSourceImpl
 import com.google.android.diskusage.filesystem.Apps2SDLoader
 import com.google.android.diskusage.filesystem.BackgroundDelete
-import com.google.android.diskusage.filesystem.entity.*
+import com.google.android.diskusage.filesystem.entity.FileSystemEntry
+import com.google.android.diskusage.filesystem.entity.FileSystemEntrySmall
+import com.google.android.diskusage.filesystem.entity.FileSystemFreeSpace
+import com.google.android.diskusage.filesystem.entity.FileSystemPackage
+import com.google.android.diskusage.filesystem.entity.FileSystemRoot
+import com.google.android.diskusage.filesystem.entity.FileSystemSuperRoot
+import com.google.android.diskusage.filesystem.entity.FileSystemSystemSpace
 import com.google.android.diskusage.filesystem.mnt.MountPoint
 import com.google.android.diskusage.opengl.RendererManager
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import splitties.toast.toast
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
-import java.util.*
+import java.util.ArrayList
+import java.util.Arrays
+import java.util.Locale
 
 typealias AfterLoad = (FileSystemSuperRoot, Boolean) -> Unit
 
@@ -370,7 +377,6 @@ class DiskUsage : LoadableActivity() {
         menu.onRestoreInstanceState(inState)
     }
 
-
     internal inner class MemoryClassDetected {
         fun maxHeap(): Int {
             val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -415,7 +421,7 @@ class DiskUsage : LoadableActivity() {
             return String.format(
                 "Used %s of %s",
                 FileSystemEntry.calcSizeString((busyBlocks * blockSize).toFloat()),
-                FileSystemEntry.calcSizeString((totalBlocks * blockSize).toFloat())
+                FileSystemEntry.calcSizeString((totalBlocks * blockSize).toFloat()),
             )
         }
     }
@@ -423,7 +429,7 @@ class DiskUsage : LoadableActivity() {
     private fun startProgressUpdater(
         lastFileProvider: () -> FileSystemEntry?,
         posProvider: () -> Long,
-        stats: FileSystemStats
+        stats: FileSystemStats,
     ): kotlinx.coroutines.Job {
         return lifecycleScope.launch {
             var file: FileSystemEntry? = null
@@ -455,7 +461,7 @@ class DiskUsage : LoadableActivity() {
             val progressJob = startProgressUpdater(
                 { scanner.lastCreatedFile() },
                 { scanner.pos() },
-                stats
+                stats,
             )
             rootElement = scanner.scan(mountPoint)!!
             progressJob.cancel()
@@ -476,7 +482,7 @@ class DiskUsage : LoadableActivity() {
         val progressJob = startProgressUpdater(
             { scanner.lastCreatedFile() },
             { scanner.pos() },
-            stats
+            stats,
         )
         val rootElement = scanner.scan(LegacyFileImpl.createRoot(mountPoint.root))!!
         progressJob.cancel()
@@ -541,9 +547,10 @@ class DiskUsage : LoadableActivity() {
     internal fun moveIntoPackage(
         pkg: FileSystemPackage,
         root: FileSystemRoot,
-        path: String, newName: String,
+        path: String,
+        newName: String,
         type: FileSystemPackage.ChildType,
-        blockSize: Long
+        blockSize: Long,
     ) {
         val e = root.getByAbsolutePath(path)
         if (e != null) {

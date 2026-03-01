@@ -1,13 +1,12 @@
 package com.google.android.diskusage.ui
 
 import androidx.lifecycle.ViewModel
+import com.google.android.diskusage.R
+import com.google.android.diskusage.filesystem.entity.FileSystemPackage
+import com.google.android.diskusage.utils.AppHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import com.google.android.diskusage.R
-import com.google.android.diskusage.utils.AppHelper
-
-import com.google.android.diskusage.filesystem.entity.FileSystemPackage
 
 class DiskUsageViewModel : ViewModel() {
     private val _toolbarActionButtonVisible = MutableStateFlow(false)

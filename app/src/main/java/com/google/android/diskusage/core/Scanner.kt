@@ -36,7 +36,7 @@ class Scanner(
     private val maxDepth: Int,
     private val blockSize: Long,
     allocatedBlocks: Long,
-    maxHeap: Int
+    maxHeap: Int,
 ) : DiskUsage.ProgressGenerator {
 
     private val blockSizeIn512Bytes: Long = blockSize / 512
@@ -63,7 +63,7 @@ class Scanner(
         var parent: FileSystemEntry,
         var children: Array<FileSystemEntry>,
         var heapSize: Int,
-        blocks: Long
+        blocks: Long,
     ) : Comparable<SmallList> {
         var spaceEfficiency: Float = blocks / heapSize.toFloat()
 
@@ -97,7 +97,7 @@ class Scanner(
             val oldChildren = list.parent.children ?: emptyArray()
             val addChildren = list.children
             val newChildren = arrayOfNulls<FileSystemEntry>(oldChildren.size - 1 + addChildren.size)
-            
+
             System.arraycopy(addChildren, 0, newChildren, 0, addChildren.size)
             var pos = addChildren.size
             for (i in oldChildren.indices) {
@@ -221,7 +221,7 @@ class Scanner(
                 thisNode,
                 smallChildren.toTypedArray(),
                 thisNodeSizeSmall,
-                smallBlocks
+                smallBlocks,
             )
             smallLists.add(list)
         }
@@ -273,7 +273,7 @@ class Scanner(
         } catch (io: SecurityException) {
             Timber.e(io, "calculateSize: list files")
         }
-        
+
         if (list == null) return 0
         var size: Long = 1
 

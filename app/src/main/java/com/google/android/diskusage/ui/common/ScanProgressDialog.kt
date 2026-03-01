@@ -31,7 +31,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import com.google.android.diskusage.filesystem.entity.FileSystemEntry
 import java.text.NumberFormat
-import java.util.Collections
 
 class ScanProgressDialog(context: Context?) : AlertDialog(context) {
     private var details: CharSequence? = null
@@ -152,8 +151,8 @@ class ScanProgressDialog(context: Context?) : AlertDialog(context) {
         } catch (e: RuntimeException) {
             throw RuntimeException(
                 "path = " + path + "[" + firstSep + ":" + lastSep + "]" +
-                        " win =" + winWidth + " extra=" + extraTextWidth + " diff=" + diff,
-                e
+                    " win =" + winWidth + " extra=" + extraTextWidth + " diff=" + diff,
+                e,
             )
         }
     }
@@ -166,7 +165,9 @@ class ScanProgressDialog(context: Context?) : AlertDialog(context) {
         val tmp = SpannableString(progressPercentFormat.format(percent))
         tmp.setSpan(
             StyleSpan(android.graphics.Typeface.BOLD),
-            0, tmp.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            0,
+            tmp.length,
+            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
         )
         percentTextView.text = tmp
         //    Log.d("diskusage", "details: " + details);

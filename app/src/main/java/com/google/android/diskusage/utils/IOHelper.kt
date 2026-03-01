@@ -10,7 +10,5 @@ object IOHelper {
 
     @JvmStatic
     @Throws(IOException::class)
-    fun getProcMountsReader(): BufferedReader
-        = BufferedReader(InputStreamReader(FileInputStream(PROC_MOUNTS)))
-
+    fun getProcMountsReader(): BufferedReader = BufferedReader(InputStreamReader(FileInputStream(PROC_MOUNTS)))
 }

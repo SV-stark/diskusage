@@ -22,7 +22,7 @@ import java.util.Arrays
 
 class FileSystemState(
     context: DiskUsage,
-    var masterRoot: FileSystemSuperRoot
+    var masterRoot: FileSystemSuperRoot,
 ) {
 
     interface FileSystemView {
@@ -152,7 +152,7 @@ class FileSystemState(
     private var minElementWidth: Int = 0
     private var maxElementWidth: Int = 0
 
-    private var stats_num_deletions = 0
+    private var statsNumDeletions = 0
     private var screenTouching: Boolean = false
 
     open class VersionedMultitouchHandler {
@@ -238,32 +238,33 @@ class FileSystemState(
                     touchMovement = true
                     var dy = ymax - ymin
                     if (dy < minDistance) dy = minDistance
-                    val avg_y = 0.5f * (ymax + ymin)
+                    val avgY = 0.5f * (ymax + ymin)
                     touchZoom = (displayBottom - displayTop) * dy.toLong() / screenHeight
-                    touchPoint = displayTop + (displayBottom - displayTop) * avg_y.toLong() / screenHeight
+                    touchPoint = displayTop + (displayBottom - displayTop) * avgY.toLong() / screenHeight
 
-                    val avg_x = 0.5f * (xmax + xmin)
+                    val avgX = 0.5f * (xmax + xmin)
                     var dx = xmax - xmin
                     minDistanceX = FileSystemEntry.elementWidth / 2f
                     if (dx < minDistanceX) dx = minDistanceX
                     touchWidth = dx / FileSystemEntry.elementWidth
-                    touchPointX = viewDepth + avg_x / FileSystemEntry.elementWidth
+                    touchPointX = viewDepth + avgX / FileSystemEntry.elementWidth
                     return true
                 }
                 var dy = ymax - ymin
                 if (dy < minDistance) dy = minDistance
-                val displayBottom_Top = touchZoom * screenHeight / dy.toLong()
-                val avg_y = 0.5f * (ymax + ymin)
-                displayTop = touchPoint - displayBottom_Top * avg_y.toLong() / screenHeight
-                displayBottom = displayTop + displayBottom_Top
+                val displayBottomTop = touchZoom * screenHeight / dy.toLong()
+                val avgY = 0.5f * (ymax + ymin)
+                displayTop = touchPoint - displayBottomTop * avgY.toLong() / screenHeight
+                displayBottom = displayTop + displayBottomTop
 
-                val avg_x = 0.5f * (xmax + xmin)
+                val avgX = 0.5f * (xmax + xmin)
                 var dx = xmax - xmin
                 if (dx < minDistanceX) dx = minDistanceX
                 FileSystemEntry.elementWidth = (dx / touchWidth).toInt()
 
-                if (FileSystemEntry.elementWidth < minElementWidth)
+                if (FileSystemEntry.elementWidth < minElementWidth) {
                     FileSystemEntry.elementWidth = minElementWidth
+                }
                 targetElementWidth = FileSystemEntry.elementWidth
 
                 viewDepth = touchPointX - avg_x / FileSystemEntry.elementWidth
@@ -301,13 +302,15 @@ class FileSystemState(
             prevMoveTime = moveTime - 10
         }
 
-        if (Math.abs(touchOffsetX) < 10 && Math.abs(touchOffsetY) < 10 && !touchMovement)
+        if (Math.abs(touchOffsetX) < 10 && Math.abs(touchOffsetY) < 10 && !touchMovement) {
             return
+        }
         touchMovement = true
 
         viewDepth -= touchOffsetX / FileSystemEntry.elementWidth
-        if (viewDepth * FileSystemEntry.elementWidth < -screenWidth * 0.6)
+        if (viewDepth * FileSystemEntry.elementWidth < -screenWidth * 0.6) {
             viewDepth = -screenWidth * 0.6f / FileSystemEntry.elementWidth
+        }
         targetViewDepth = viewDepth
 
         val offset = (touchOffsetY / yscale).toLong()
@@ -402,8 +405,9 @@ class FileSystemState(
 
     fun onTouchEvent(ev: MyMotionEvent): Boolean {
         try { // finally requestRepaintGPU()
-            if (sdcardIsEmpty())
+            if (sdcardIsEmpty()) {
                 return true
+            }
 
             if (deletingEntry != null) {
                 // setup state of multitouch to reinitialize next time
@@ -411,8 +415,9 @@ class FileSystemState(
                 return true
             }
 
-            if (multitouchHandler.handleTouch(ev))
+            if (multitouchHandler.handleTouch(ev)) {
                 return true
+            }
 
             var newTouchX = ev.x
             var newTouchY = ev.y
@@ -437,7 +442,7 @@ class FileSystemState(
                 touchX = newTouchX
                 touchY = newTouchY
                 touchDepth = (FileSystemEntry.elementWidth * viewDepth + touchX) /
-                        FileSystemEntry.elementWidth
+                    FileSystemEntry.elementWidth
                 touchPoint = displayTop + (displayBottom - displayTop) * touchY.toLong() / screenHeight
                 touchEntry = masterRoot.findEntry(touchDepth.toInt() + 1, touchPoint)
                 if (touchEntry === masterRoot) {
@@ -473,15 +478,14 @@ class FileSystemState(
                     val touchOffsetX = speedX * 15
                     val touchOffsetY = speedY * 15
                     targetViewDepth -= touchOffsetX / FileSystemEntry.elementWidth
-                    if (targetViewDepth * FileSystemEntry.elementWidth < -screenWidth * 0.6)
+                    if (targetViewDepth * FileSystemEntry.elementWidth < -screenWidth * 0.6) {
                         targetViewDepth = -screenWidth * 0.6f / FileSystemEntry.elementWidth
-
+                    }
 
                     val offset = (touchOffsetY / yscale).toLong()
                     val allowedOverflow = (screenHeight * 0.6f / yscale).toLong()
                     targetViewTop -= offset
                     targetViewBottom -= offset
-
 
                     if (targetViewTop < -allowedOverflow) {
                         val oldTop = targetViewTop
@@ -501,7 +505,6 @@ class FileSystemState(
                 animationDuration = DEFAULT_ANIMATION_DURATION
                 requestRepaint()
             }
-
         } finally {
             requestRepaintGPU()
         }
@@ -535,7 +538,7 @@ class FileSystemState(
 
     fun replaceRootKeepCursor(
         newRoot: FileSystemSuperRoot,
-        searchQuery: String?
+        searchQuery: String?,
     ) {
         view?.runInRenderThread {
             var oldPosition = cursor.position
@@ -574,7 +577,8 @@ class FileSystemState(
 
     fun startZoomAnimationInRenderThread(
         newRoot: FileSystemSuperRoot?,
-        animate: Boolean, keepCursor: Boolean
+        animate: Boolean,
+        keepCursor: Boolean,
     ) {
         view?.runInRenderThread {
             if (newRoot != null) rescanFinished(newRoot)
@@ -668,8 +672,8 @@ class FileSystemState(
             //      view.requestRepaint();
             return true
         } else if (!screenTouching) {
-            if (targetViewTop < 0 || targetViewBottom > masterRoot.sizeForRendering
-                || viewDepth < 0 || FileSystemEntry.elementWidth > maxElementWidth
+            if (targetViewTop < 0 || targetViewBottom > masterRoot.sizeForRendering ||
+                viewDepth < 0 || FileSystemEntry.elementWidth > maxElementWidth
             ) {
                 prepareMotion(SystemClock.uptimeMillis())
                 animationDuration = DEFAULT_ANIMATION_DURATION
@@ -705,7 +709,11 @@ class FileSystemState(
 
     private fun paintSlowGPU(
         rt: RenderingThread,
-        viewTop: Long, viewBottom: Long, viewDepth: Float, screenWidth: Int, screenHeight: Int
+        viewTop: Long,
+        viewBottom: Long,
+        viewDepth: Float,
+        screenWidth: Int,
+        screenHeight: Int,
     ) {
         val bounds2 = Rect(0, 0, screenWidth, screenHeight)
         masterRoot.paintGPU(rt, bounds2, cursor, viewTop, viewDepth, yscale, screenHeight, numSpecialEntries)
@@ -727,7 +735,11 @@ class FileSystemState(
 
     private fun paintSlow(
         canvas: Canvas,
-        viewTop: Long, viewBottom: Long, viewDepth: Float, bounds: Rect, screenHeight: Int
+        viewTop: Long,
+        viewBottom: Long,
+        viewDepth: Float,
+        bounds: Rect,
+        screenHeight: Int,
     ) {
         if (bounds.bottom != 0 || bounds.top != 0 || bounds.left != 0 || bounds.right != 0) {
             masterRoot.paint(canvas, bounds, cursor, viewTop, viewDepth, yscale, screenHeight, numSpecialEntries)
@@ -771,14 +783,13 @@ class FileSystemState(
 
     var prevMoveTime: Long = 0
 
-
     /*
-   * TODO:
-   * Add Message to the screen in DeleteActivity
-   * Check that DeleteActivity has right title
-   * multitouch on eclair
-   * Fling works bad on eclair, use 10ms approximation for last movement
-   */
+     * TODO:
+     * Add Message to the screen in DeleteActivity
+     * Check that DeleteActivity has right title
+     * multitouch on eclair
+     * Fling works bad on eclair, use 10ms approximation for last movement
+     */
     private fun touchSelect(entry: FileSystemEntry, eventTime: Long) {
         val prevCursor = cursor.position
         val prevDepth = cursor.depth
@@ -797,8 +808,8 @@ class FileSystemState(
 
         zoomFitLabelMoveUp(eventTime)
         zoomFitToScreen(eventTime)
-        val has_children = entry.children != null && entry.children!!.isNotEmpty()
-        if (!has_children) {
+        val hasChildren = entry.children != null && entry.children!!.isNotEmpty()
+        if (!hasChildren) {
             //      Log.d("diskusage", "zoom file");
             fullZoom = false
             if (targetViewTop == prevViewTop && targetViewBottom == prevViewBottom) {
@@ -807,7 +818,7 @@ class FileSystemState(
                     warnOnFileSelect = true
                 }
             }
-            val minRequiredDepth = cursor.depth + 1 + (if (has_children) 1 else 0) - maxLevels
+            val minRequiredDepth = cursor.depth + 1 + (if (hasChildren) 1 else 0) - maxLevels
             if (targetViewDepth < minRequiredDepth) {
                 targetViewDepth = minRequiredDepth
             }
@@ -823,7 +834,7 @@ class FileSystemState(
         }
 
         var maxRequiredDepth = cursor.depth - (if (cursor.depth > 0) 1 else 0).toFloat()
-        var minRequiredDepth = cursor.depth + 1 + (if (has_children) 1 else 0) - maxLevels
+        var minRequiredDepth = cursor.depth + 1 + (if (hasChildren) 1 else 0) - maxLevels
         if (minRequiredDepth > maxRequiredDepth) {
             //      Log.d("diskusage", "zoom levels overlap, fullZoom = " + fullZoom);
             if (fullZoom) {
@@ -859,30 +870,30 @@ class FileSystemState(
 
     private fun zoomFitLabel(eventTime: Long) {
         if (cursor.position.sizeForRendering == 0L) {
-            //Log.d("DiskUsage", "position is of zero size");
+            // Log.d("DiskUsage", "position is of zero size");
             return
         }
 
         val yscale = screenHeight / (targetViewBottom - targetViewTop).toFloat()
 
         if (cursor.position.sizeForRendering * yscale > FileSystemEntry.fontSize * 2 + 2) {
-            //Log.d("DiskUsage", "position large enough to contain label");
+            // Log.d("DiskUsage", "position large enough to contain label");
         } else {
-            //Log.d("DiskUsage", "zoom in");
-            val new_yscale = FileSystemEntry.fontSize * 2.5f / cursor.position.sizeForRendering
+            // Log.d("DiskUsage", "zoom in");
+            val newYScale = FileSystemEntry.fontSize * 2.5f / cursor.position.sizeForRendering
             prepareMotion(eventTime)
 
-            targetViewTop = targetViewBottom - (screenHeight / new_yscale).toLong()
+            targetViewTop = targetViewBottom - (screenHeight / newYScale).toLong()
 
             if (targetViewTop > cursor.top) {
-                //Log.d("DiskUsage", "moving down to fit view after zoom in");
+                // Log.d("DiskUsage", "moving down to fit view after zoom in");
                 // 10% from top
                 val offset = cursor.top - (targetViewTop * 0.8 + targetViewBottom * 0.2).toLong()
                 targetViewTop += offset
                 targetViewBottom += offset
 
                 if (targetViewTop < 0) {
-                    //Log.d("DiskUsage", "at the top");
+                    // Log.d("DiskUsage", "at the top");
                     targetViewBottom -= targetViewTop
                     targetViewTop = 0
                 }
@@ -892,14 +903,14 @@ class FileSystemState(
 
     private fun zoomFitLabelMoveUp(eventTime: Long) {
         if (cursor.position.sizeForRendering == 0L) {
-            //Log.d("DiskUsage", "position is of zero size");
+            // Log.d("DiskUsage", "position is of zero size");
             return
         }
 
         zoomFitLabel(eventTime)
 
         if (targetViewBottom < cursor.top + cursor.position.sizeForRendering) {
-            //Log.d("DiskUsage", "move up as needed");
+            // Log.d("DiskUsage", "move up as needed");
             prepareMotion(eventTime)
 
             val offset = cursor.top + cursor.position.sizeForRendering - (targetViewTop * 0.2 + targetViewBottom * 0.8).toLong()
@@ -918,12 +929,11 @@ class FileSystemState(
         if (targetViewTop < cursor.top &&
             targetViewBottom > cursor.top + cursor.position.sizeForRendering
         ) {
-
             // Log.d("DiskUsage", "fits in, no need for zoom out");
             return
         }
 
-        //Log.d("DiskUsage", "zoom out");
+        // Log.d("DiskUsage", "zoom out");
 
         prepareMotion(eventTime)
 
@@ -980,7 +990,7 @@ class FileSystemState(
 
     fun removeInRenderThread(entry: FileSystemEntry) {
         view?.runInRenderThread {
-            stats_num_deletions++
+            statsNumDeletions++
             fadeAwayEntryStart(entry, this@FileSystemState)
         }
         requestRepaintGPU()
@@ -1003,8 +1013,9 @@ class FileSystemState(
             freeSpace!!.setSizeInBlocks(freeSpace!!.sizeInBlocks + deletingEntryBlocks, displayBlockSize)
             masterRoot.setSizeInBlocks(masterRoot.sizeInBlocks + deletingEntryBlocks, displayBlockSize)
             masterRoot.children!![0].setSizeInBlocks(
-                masterRoot.children!![0].sizeInBlocks
-                        + deletingEntryBlocks, displayBlockSize
+                masterRoot.children!![0].sizeInBlocks +
+                    deletingEntryBlocks,
+                displayBlockSize,
             )
             freeSpace!!.clearDrawingCache()
         }
@@ -1117,8 +1128,9 @@ class FileSystemState(
         if (freeSpace != null) {
             masterRoot.setSizeInBlocks(masterRoot.sizeInBlocks - dSize, displayBlockSize)
             masterRoot.children!![0].setSizeInBlocks(
-                masterRoot.children!![0].sizeInBlocks
-                        - dSize, displayBlockSize
+                masterRoot.children!![0].sizeInBlocks -
+                    dSize,
+                displayBlockSize,
             )
             freeSpace!!.setSizeInBlocks(freeSpace!!.sizeInBlocks - dSize, displayBlockSize)
         }
@@ -1127,8 +1139,9 @@ class FileSystemState(
             val deltaBlocks = newBlocks - entry.sizeInBlocks
             if (deltaBlocks == 0L) return
             entry.setSizeInBlocks(entry.sizeInBlocks + deltaBlocks, displayBlockSize)
-            if (entry.children == null || entry.children!!.isEmpty())
+            if (entry.children == null || entry.children!!.isEmpty()) {
                 return
+            }
             val children = entry.children!!
             var blocks: Long = 0
             val prevEntry = entry
@@ -1168,8 +1181,9 @@ class FileSystemState(
     }
 
     fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (sdcardIsEmpty())
+        if (sdcardIsEmpty()) {
             return false
+        }
 
         try { // finally requestRepaintGPU()
 
@@ -1233,7 +1247,7 @@ class FileSystemState(
       return back();
     }*/
 
-            //Log.d("DiskUsage", "Key down = " + keyCode + " " + event);
+            // Log.d("DiskUsage", "Key down = " + keyCode + " " + event);
         } finally {
             requestRepaintGPU()
         }
@@ -1242,8 +1256,13 @@ class FileSystemState(
 
     @Synchronized
     fun layout(
-        changed: Boolean, left: Int, top: Int, right: Int,
-        bottom: Int, width: Int, height: Int
+        changed: Boolean,
+        left: Int,
+        top: Int,
+        right: Int,
+        bottom: Int,
+        width: Int,
+        height: Int,
     ) {
         screenWidth = width
         screenHeight = height
@@ -1299,7 +1318,7 @@ class FileSystemState(
         outState.putFloat("maxLevels", maxLevels)
         outState.putInt(
             "zoomState",
-            if (zoomState == ZoomState.ZOOM_ALLOCATED) 0 else (if (zoomState == ZoomState.ZOOM_FULL) 1 else 2)
+            if (zoomState == ZoomState.ZOOM_ALLOCATED) 0 else (if (zoomState == ZoomState.ZOOM_FULL) 1 else 2),
         )
     }
 
@@ -1313,8 +1332,9 @@ class FileSystemState(
         val height = screenHeight / 41f * 40f
         var required = (busy * (height / (height - message))).toLong()
         required = (required * (40f / 40.5f)).toLong()
-        if (required < freeSpaceZoom * 0.9f)
+        if (required < freeSpaceZoom * 0.9f) {
             freeSpaceZoom = required
+        }
         return freeSpaceZoom
     }
 
@@ -1332,15 +1352,18 @@ class FileSystemState(
     }
 
     private fun toggleZoomState() {
-        zoomState = if (zoomState == ZoomState.ZOOM_ALLOCATED)
-            ZoomState.ZOOM_FULL else ZoomState.ZOOM_ALLOCATED
+        zoomState = if (zoomState == ZoomState.ZOOM_ALLOCATED) {
+            ZoomState.ZOOM_FULL
+        } else {
+            ZoomState.ZOOM_ALLOCATED
+        }
         setZoomState()
     }
 
     private enum class ZoomState {
         ZOOM_FULL,
         ZOOM_ALLOCATED,
-        ZOOM_OTHER
+        ZOOM_OTHER,
     }
 
     fun killRenderThread() {
@@ -1361,6 +1384,6 @@ class FileSystemState(
         private var animationDuration: Long = DEFAULT_ANIMATION_DURATION
         private const val DEFAULT_ANIMATION_DURATION: Long = 300
         private const val MOTION_ANIMATION_DURATION: Long = 900
-        private const val deletionAnimationDuration: Long = 900
+        private const val DELETION_ANIMATION_DURATION: Long = 900
     }
 }

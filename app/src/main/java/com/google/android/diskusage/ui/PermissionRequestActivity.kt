@@ -20,7 +20,6 @@
 package com.google.android.diskusage.ui
 
 import android.Manifest
-import android.app.Activity
 import android.app.AlertDialog
 import android.app.AppOpsManager
 import android.content.Context
@@ -42,18 +41,17 @@ import androidx.compose.ui.Modifier
 import com.google.android.diskusage.R
 import com.google.android.diskusage.filesystem.mnt.MountPoint
 import splitties.toast.toast
-import timber.log.Timber
 
 class PermissionRequestActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         setContent {
             MaterialTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.background,
                 ) {
                     Box(modifier = Modifier.fillMaxSize())
                 }
@@ -83,13 +81,13 @@ class PermissionRequestActivity : ComponentActivity() {
             .setTitle(R.string.dialog_usage_access_title)
             .setMessage(R.string.dialog_usage_access_desc)
             .setPositiveButton(
-                android.R.string.ok
+                android.R.string.ok,
             ) { dialogInterface, i1 ->
                 val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
                 startActivityForResult(intent, PERMISSION_REQUEST_USAGE_ACCESS_CODE)
             }
             .setNegativeButton(
-                android.R.string.cancel
+                android.R.string.cancel,
             ) { dialogInterface, i12 -> forwardToDiskUsage() }.create().show()
 
         requestExternalStoragePermission()
@@ -146,9 +144,9 @@ class PermissionRequestActivity : ComponentActivity() {
                 requestPermissions(
                     arrayOf(
                         Manifest.permission.READ_EXTERNAL_STORAGE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
                     ),
-                    PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE
+                    PERMISSION_REQUEST_EXTERNAL_STORAGE_CODE,
                 )
             }
         }
@@ -163,12 +161,14 @@ class PermissionRequestActivity : ComponentActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 mode = appOpsManager.unsafeCheckOpNoThrow(
                     AppOpsManager.OPSTR_GET_USAGE_STATS,
-                    applicationInfo.uid, applicationInfo.packageName
+                    applicationInfo.uid,
+                    applicationInfo.packageName,
                 )
             } else {
                 mode = appOpsManager.checkOpNoThrow(
                     AppOpsManager.OPSTR_GET_USAGE_STATS,
-                    applicationInfo.uid, applicationInfo.packageName
+                    applicationInfo.uid,
+                    applicationInfo.packageName,
                 )
             }
             (mode == AppOpsManager.MODE_ALLOWED)

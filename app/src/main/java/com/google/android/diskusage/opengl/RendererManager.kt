@@ -28,7 +28,8 @@ class RendererManager(private val diskusage: DiskUsage) {
     }
 
     fun makeView(
-        eventHandler: FileSystemState, root: FileSystemSuperRoot
+        eventHandler: FileSystemState,
+        root: FileSystemSuperRoot,
     ) {
         val view: View = if (hwRenderer) {
             FileSystemViewGPU(diskusage, eventHandler)
@@ -38,7 +39,6 @@ class RendererManager(private val diskusage: DiskUsage) {
         diskusage.menu.wrapAndSetContentView(view, root)
         view.requestFocus()
     }
-
 
     fun onResume() {
         hwRenderer = prefs.getBoolean(HW_RENDERER, true)

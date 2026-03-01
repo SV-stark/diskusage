@@ -23,7 +23,7 @@ import com.google.android.diskusage.filesystem.entity.FileSystemEntry
 
 class Cursor internal constructor(
     state: FileSystemState,
-    var root: FileSystemEntry
+    var root: FileSystemEntry,
 ) {
     var position: FileSystemEntry
     var top: Long
@@ -43,7 +43,6 @@ class Cursor internal constructor(
     fun updateTitle(state: FileSystemState) {
         state.mainThreadAction.updateTitle(position)
     }
-
 
     fun down(view: FileSystemState) {
         val newCursor = position.next

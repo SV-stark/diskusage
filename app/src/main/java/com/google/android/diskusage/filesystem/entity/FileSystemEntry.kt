@@ -36,7 +36,7 @@ import java.util.TreeMap
 
 open class FileSystemEntry(
     var parent: FileSystemEntry?,
-    var name: String?
+    var name: String?,
 ) {
 
     fun hasChildren(): Boolean {
@@ -100,15 +100,15 @@ open class FileSystemEntry(
         return this
     }
 
-    class ExcludeFilter(exclude_paths: ArrayList<String>?) {
+    class ExcludeFilter(excludePaths: ArrayList<String>?) {
         val childFilter: Map<String, ExcludeFilter>?
 
         init {
-            if (exclude_paths == null) {
+            if (excludePaths == null) {
                 this.childFilter = null
             } else {
                 val filter = TreeMap<String, ArrayList<String?>>()
-                for (path in exclude_paths) {
+                for (path in excludePaths) {
                     val parts = path.split("/".toRegex(), limit = 2).toTypedArray()
                     if (parts.size < 2) {
                         addEntry(filter, path, null)
@@ -118,14 +118,14 @@ open class FileSystemEntry(
                 }
                 val excludeFilter = TreeMap<String, ExcludeFilter>()
                 for ((key, value) in filter) {
-                    var has_null = false
+                    var hasNull = false
                     for (part in value) {
                         if (part == null) {
-                            has_null = true
+                            hasNull = true
                             break
                         }
                     }
-                    if (has_null) {
+                    if (hasNull) {
                         excludeFilter[key] = ExcludeFilter(null)
                     } else {
                         val nonNullList = ArrayList<String>()
@@ -141,7 +141,9 @@ open class FileSystemEntry(
 
         companion object {
             private fun addEntry(
-                filter: TreeMap<String, ArrayList<String?>>, name: String, value: String?
+                filter: TreeMap<String, ArrayList<String?>>,
+                name: String,
+                value: String?,
             ) {
                 var entry: ArrayList<String?>? = filter[name]
                 if (entry == null) {
@@ -182,16 +184,16 @@ open class FileSystemEntry(
 
     fun filterChildren(pattern: CharSequence, blockSize: Long): FileSystemEntry? {
         val childrenArray = children ?: return null
-        val filtered_children = ArrayList<FileSystemEntry>()
+        val filteredChildren = ArrayList<FileSystemEntry>()
 
         for (child in childrenArray) {
             val childCopy = child.filter(pattern, blockSize)
             if (childCopy != null) {
-                filtered_children.add(childCopy)
+                filteredChildren.add(childCopy)
             }
         }
-        if (filtered_children.size == 0) return null
-        val childrenArrayResult = filtered_children.toTypedArray()
+        if (filteredChildren.size == 0) return null
+        val childrenArrayResult = filteredChildren.toTypedArray()
         Arrays.sort(childrenArray, COMPARE)
         val copy = create()
         copy.children = childrenArray
@@ -254,9 +256,13 @@ open class FileSystemEntry(
 
     fun paintGPU(
         rt: RenderingThread,
-        bounds: Rect, cursor: Cursor, viewTop: Long,
-        viewDepth: Float, yscale: Float, screenHeight: Int,
-        numSpecialEntries: Int
+        bounds: Rect,
+        cursor: Cursor,
+        viewTop: Long,
+        viewDepth: Float,
+        yscale: Float,
+        screenHeight: Int,
+        numSpecialEntries: Int,
     ) {
         val viewLeft = (viewDepth * elementWidth).toInt()
 
@@ -270,12 +276,12 @@ open class FileSystemEntry(
         if (children != null) {
             paintGPU(
                 sizeForRendering, children!!, rt, xoffset, yoffset, yscale, clipLeft.toLong(), clipRight.toLong(),
-                clipTop, clipBottom, screenHeight
+                clipTop, clipBottom, screenHeight,
             )
 
             paintSpecialGPU(
                 sizeForRendering, children!!, rt, xoffset, yoffset, yscale, clipLeft.toLong(), clipRight.toLong(),
-                clipTop, clipBottom, screenHeight, numSpecialEntries
+                clipTop, clipBottom, screenHeight, numSpecialEntries,
             )
         }
 
@@ -287,8 +293,14 @@ open class FileSystemEntry(
     }
 
     fun paint(
-        canvas: Canvas, bounds: Rect, cursor: Cursor, viewTop: Long,
-        viewDepth: Float, yscale: Float, screenHeight: Int, numSpecialEntries: Int
+        canvas: Canvas,
+        bounds: Rect,
+        cursor: Cursor,
+        viewTop: Long,
+        viewDepth: Float,
+        yscale: Float,
+        screenHeight: Int,
+        numSpecialEntries: Int,
     ) {
         val viewLeft = (viewDepth * elementWidth).toInt()
 
@@ -302,12 +314,12 @@ open class FileSystemEntry(
         if (children != null) {
             paint(
                 sizeForRendering, children!!, canvas, xoffset, yoffset, yscale, clipLeft.toLong(), clipRight.toLong(),
-                clipTop, clipBottom, screenHeight
+                clipTop, clipBottom, screenHeight,
             )
 
             paintSpecial(
                 sizeForRendering, children!!, canvas, xoffset, yoffset, yscale, clipLeft.toLong(), clipRight.toLong(),
-                clipTop, clipBottom, screenHeight, numSpecialEntries
+                clipTop, clipBottom, screenHeight, numSpecialEntries,
             )
         }
 
@@ -315,7 +327,7 @@ open class FileSystemEntry(
         val cursorTop = (cursor.top - viewTop) * yscale
         val cursorRight = cursorLeft + elementWidth
         val cursorBottom = cursorTop + cursor.position.sizeForRendering * yscale
-        canvas.drawRect(cursorLeft, cursorTop, cursorRight, cursorBottom, cursor_fg)
+        canvas.drawRect(cursorLeft, cursorTop, cursorRight, cursorBottom, cursorFg)
     }
 
     fun sizeString(): String {
@@ -326,11 +338,11 @@ open class FileSystemEntry(
         val sizeString0 = sizeString()
         val childrenArray = children
         return if (childrenArray != null && childrenArray.isNotEmpty()) {
-            String.format(dir_name_size_num_dirs!!, name, sizeString0, childrenArray.size)
+            String.format(dirNameSizeNumDirs!!, name, sizeString0, childrenArray.size)
         } else if (sizeInBlocks == 0L) {
-            String.format(dir_empty!!, name)
+            String.format(dirEmpty!!, name)
         } else {
-            String.format(dir_name_size!!, name, sizeString0)
+            String.format(dirNameSize!!, name, sizeString0)
         }
     }
 
@@ -500,47 +512,49 @@ open class FileSystemEntry(
 
     companion object {
         private val bg = Paint()
-        private val bg_emptySpace = Paint()
-        private val cursor_fg = Paint()
-        private val fg_rect = Paint()
+        private val bgEmptySpace = Paint()
+        private val cursorFg = Paint()
+        private val fgRect = Paint()
         val fg2: Paint = Paint()
-        private val fill_bg = Paint()
+        private val fillBg = Paint()
         private val textPaintFolder = Paint()
         private val textPaintFile = Paint()
         var ascent: Float = 0f
         var descent: Float = 0f
-        private var n_bytes: String? = null
-        private var n_kilobytes: String? = null
-        private var n_megabytes: String? = null
-        private var n_megabytes10: String? = null
-        private var n_megabytes100: String? = null
-        private var n_gigabytes: String? = null
-        private var n_gigabytes10: String? = null
-        private var n_gigabytes100: String? = null
-        private var dir_name_size_num_dirs: String? = null
-        private var dir_empty: String? = null
-        private var dir_name_size: String? = null
+        private var nBytes: String? = null
+        private var nKilobytes: String? = null
+        private var nMegabytes: String? = null
+        private var nMegabytes10: String? = null
+        private var nMegabytes100: String? = null
+        private var nGigabytes: String? = null
+        private var nGigabytes10: String? = null
+        private var nGigabytes100: String? = null
+        private var dirNameSizeNumDirs: String? = null
+        private var dirEmpty: String? = null
+        private var dirNameSize: String? = null
+
         @JvmField
         var deletedEntry: FileSystemEntry? = null
 
         var fontSize: Float = 0f
+
         @JvmField
         var elementWidth: Int = 0
 
         init {
             bg.color = Color.parseColor("#060118")
-            bg_emptySpace.color = Color.parseColor("#063A43")
+            bgEmptySpace.color = Color.parseColor("#063A43")
             bg.style = Paint.Style.FILL
-            fg_rect.color = Color.WHITE
-            fg_rect.style = Paint.Style.STROKE
-            fg_rect.flags = fg_rect.flags or Paint.ANTI_ALIAS_FLAG
+            fgRect.color = Color.WHITE
+            fgRect.style = Paint.Style.STROKE
+            fgRect.flags = fgRect.flags or Paint.ANTI_ALIAS_FLAG
             fg2.color = Color.parseColor("#18C5E7")
             fg2.style = Paint.Style.STROKE
             fg2.flags = fg2.flags or Paint.ANTI_ALIAS_FLAG
-            fill_bg.color = Color.WHITE
-            fill_bg.style = Paint.Style.FILL
-            cursor_fg.color = Color.YELLOW
-            cursor_fg.style = Paint.Style.STROKE
+            fillBg.color = Color.WHITE
+            fillBg.style = Paint.Style.FILL
+            cursorFg.color = Color.YELLOW
+            cursorFg.style = Paint.Style.STROKE
 
             textPaintFolder.color = Color.WHITE
             textPaintFolder.style = Paint.Style.FILL_AND_STROKE
@@ -564,21 +578,21 @@ open class FileSystemEntry(
         private const val MULTIPLIER_GBYTES100 = 7 shl MULTIPLIER_SHIFT
         private const val SIZE_MASK = (1 shl MULTIPLIER_SHIFT) - 1
 
-        const val blockOffset: Int = 24
-        const val blockMask: Long = (1L shl blockOffset) - 1
+        const val BLOCK_OFFSET: Int = 24
+        const val BLOCK_MASK: Long = (1L shl BLOCK_OFFSET) - 1
 
         @JvmStatic
         fun calcSizeStringFromEncoded(encodedSize: Long): String {
             val size = SIZE_MASK and encodedSize.toInt()
             when (MULTIPLIER_MASK and encodedSize.toInt()) {
-                MULTIPLIER_BYTES -> return String.format(n_bytes!!, size)
-                MULTIPLIER_KBYTES -> return String.format(n_kilobytes!!, size)
-                MULTIPLIER_MBYTES -> return java.lang.String.format(n_megabytes!!, size * (1f / 1024))
-                MULTIPLIER_MBYTES10 -> return java.lang.String.format(n_megabytes10!!, size * (1f / 1024))
-                MULTIPLIER_MBYTES100 -> return String.format(n_megabytes100!!, size)
-                MULTIPLIER_GBYTES -> return java.lang.String.format(n_gigabytes!!, size * (1f / 1024))
-                MULTIPLIER_GBYTES10 -> return java.lang.String.format(n_gigabytes10!!, size * (1f / 1024))
-                MULTIPLIER_GBYTES100 -> return String.format(n_gigabytes100!!, size)
+                MULTIPLIER_BYTES -> return String.format(nBytes!!, size)
+                MULTIPLIER_KBYTES -> return String.format(nKilobytes!!, size)
+                MULTIPLIER_MBYTES -> return java.lang.String.format(nMegabytes!!, size * (1f / 1024))
+                MULTIPLIER_MBYTES10 -> return java.lang.String.format(nMegabytes10!!, size * (1f / 1024))
+                MULTIPLIER_MBYTES100 -> return String.format(nMegabytes100!!, size)
+                MULTIPLIER_GBYTES -> return java.lang.String.format(nGigabytes!!, size * (1f / 1024))
+                MULTIPLIER_GBYTES10 -> return java.lang.String.format(nGigabytes10!!, size * (1f / 1024))
+                MULTIPLIER_GBYTES100 -> return String.format(nGigabytes100!!, size)
             }
             return ""
         }
@@ -601,62 +615,70 @@ open class FileSystemEntry(
         val COMPARE: Compare = Compare()
 
         private fun paintSpecialGPU(
-            parent_size: Long, entriesParam: Array<FileSystemEntry>,
-            rt: RenderingThread, xoffsetParam: Float, yoffsetParam: Float, yscale: Float,
-            clipLeftParam: Long, clipRightParam: Long, clipTopParam: Long, clipBottomParam: Long,
-            screenHeight: Int, numSpecial: Int
+            parentSize: Long,
+            entriesParam: Array<FileSystemEntry>,
+            rt: RenderingThread,
+            xoffsetParam: Float,
+            yoffsetParam: Float,
+            yscale: Float,
+            clipLeftParam: Long,
+            clipRightParam: Long,
+            clipTopParam: Long,
+            clipBottomParam: Long,
+            screenHeight: Int,
+            numSpecial: Int,
         ) {
-            var parentSize = parent_size
+            var currentParentSize = parentSize
             val entries = entriesParam[0].children ?: return
             val xoffset = xoffsetParam + elementWidth
             val clipLeft = clipLeftParam - elementWidth
 
             val children = entries
             val len = children.size
-            var child_clipTop = clipTopParam
-            var child_clipBottom = clipBottomParam
-            val child_xoffset = xoffset + elementWidth
+            var childClipTop = clipTopParam
+            var childClipBottom = clipBottomParam
+            val childXOffset = xoffset + elementWidth
             var yoffset = yoffsetParam
 
             for (i in 0 until len - numSpecial) {
                 val c = children[i]
                 val csize = c.sizeForRendering
-                parentSize -= csize
+                currentParentSize -= csize
 
                 val top = yoffset
                 val bottom = top + csize * yscale
 
-                if (child_clipBottom < 0) {
+                if (childClipBottom < 0) {
                     return
                 }
-                child_clipTop -= csize
-                child_clipBottom -= csize
+                childClipTop -= csize
+                childClipBottom -= csize
                 yoffset = bottom
             }
 
             for (i in len - numSpecial until len) {
                 val c = children[i]
                 val csize = c.sizeForRendering
-                parentSize -= csize
+                currentParentSize -= csize
 
                 val top = yoffset
                 val bottom = top + csize * yscale
 
-                if (child_clipTop > csize) {
-                    child_clipTop -= csize
-                    child_clipBottom -= csize
+                if (childClipTop > csize) {
+                    childClipTop -= csize
+                    childClipBottom -= csize
                     yoffset = bottom
                     continue
                 }
 
-                if (child_clipBottom < 0) {
+                if (childClipBottom < 0) {
                     return
                 }
 
                 if (clipLeft < elementWidth) {
                     val fontSize0 = fontSize
 
-                    rt.specialSquare?.draw(xoffset, top, child_xoffset, bottom)
+                    rt.specialSquare?.draw(xoffset, top, childXOffset, bottom)
 
                     if (bottom - top > fontSize0 * 2) {
                         var pos = (top + bottom) * 0.5f
@@ -685,70 +707,78 @@ open class FileSystemEntry(
                     }
                 }
 
-                child_clipTop -= csize
-                child_clipBottom -= csize
+                childClipTop -= csize
+                childClipBottom -= csize
                 yoffset = bottom
             }
         }
 
         private fun paintSpecial(
-            parent_size: Long, entriesParam: Array<FileSystemEntry>,
-            canvas: Canvas, xoffsetParam: Float, yoffsetParam: Float, yscale: Float,
-            clipLeftParam: Long, clipRightParam: Long, clipTopParam: Long, clipBottomParam: Long,
-            screenHeight: Int, numSpecial: Int
+            parentSize: Long,
+            entriesParam: Array<FileSystemEntry>,
+            canvas: Canvas,
+            xoffsetParam: Float,
+            yoffsetParam: Float,
+            yscale: Float,
+            clipLeftParam: Long,
+            clipRightParam: Long,
+            clipTopParam: Long,
+            clipBottomParam: Long,
+            screenHeight: Int,
+            numSpecial: Int,
         ) {
-            var parentSize = parent_size
+            var currentParentSize = parentSize
             val entries = entriesParam[0].children ?: return
             val xoffset = xoffsetParam + elementWidth
             val clipLeft = clipLeftParam - elementWidth
 
             val children = entries
             val len = children.size
-            var child_clipTop = clipTopParam
-            var child_clipBottom = clipBottomParam
-            val child_xoffset = xoffset + elementWidth
+            var childClipTop = clipTopParam
+            var childClipBottom = clipBottomParam
+            val childXOffset = xoffset + elementWidth
             var yoffset = yoffsetParam
 
             for (i in 0 until len - numSpecial) {
                 val c = children[i]
                 val csize = c.sizeForRendering
-                parentSize -= csize
+                currentParentSize -= csize
 
                 val top = yoffset
                 val bottom = top + csize * yscale
 
-                if (child_clipBottom < 0) {
+                if (childClipBottom < 0) {
                     return
                 }
-                child_clipTop -= csize
-                child_clipBottom -= csize
+                childClipTop -= csize
+                childClipBottom -= csize
                 yoffset = bottom
             }
 
             for (i in len - numSpecial until len) {
                 val c = children[i]
                 val csize = c.sizeForRendering
-                parentSize -= csize
+                currentParentSize -= csize
 
                 val top = yoffset
                 val bottom = top + csize * yscale
 
-                if (child_clipTop > csize) {
-                    child_clipTop -= csize
-                    child_clipBottom -= csize
+                if (childClipTop > csize) {
+                    childClipTop -= csize
+                    childClipBottom -= csize
                     yoffset = bottom
                     continue
                 }
 
-                if (child_clipBottom < 0) {
+                if (childClipBottom < 0) {
                     return
                 }
 
                 if (clipLeft < elementWidth) {
                     val fontSize0 = fontSize
 
-                    canvas.drawRect(xoffset, top, child_xoffset, bottom, bg_emptySpace)
-                    canvas.drawRect(xoffset, top, child_xoffset, bottom, fg_rect)
+                    canvas.drawRect(xoffset, top, childXOffset, bottom, bgEmptySpace)
+                    canvas.drawRect(xoffset, top, childXOffset, bottom, fgRect)
 
                     if (bottom - top > fontSize0 * 2) {
                         var pos = (top + bottom) * 0.5f
@@ -778,63 +808,72 @@ open class FileSystemEntry(
                         val cliplen = fg2.breakText(c.name, true, (elementWidth - 4).toFloat(), null)
                         val clippedName = c.name?.substring(0, cliplen) ?: ""
                         canvas.drawText(
-                            clippedName, xoffset + 2,
+                            clippedName,
+                            xoffset + 2,
                             (top + bottom - ascent - descent) / 2,
-                            if (c.children == null) textPaintFile else textPaintFolder
+                            if (c.children == null) textPaintFile else textPaintFolder,
                         )
                     }
                 }
 
-                child_clipTop -= csize
-                child_clipBottom -= csize
+                childClipTop -= csize
+                childClipBottom -= csize
                 yoffset = bottom
             }
         }
 
         private fun paintGPU(
-            parent_size: Long, entries: Array<FileSystemEntry>,
-            rt: RenderingThread, xoffsetParam: Float, yoffsetParam: Float, yscale: Float,
-            clipLeftParam: Long, clipRightParam: Long, clipTopParam: Long, clipBottomParam: Long,
-            screenHeight: Int
+            parentSize: Long,
+            entries: Array<FileSystemEntry>,
+            rt: RenderingThread,
+            xoffsetParam: Float,
+            yoffsetParam: Float,
+            yscale: Float,
+            clipLeftParam: Long,
+            clipRightParam: Long,
+            clipTopParam: Long,
+            clipBottomParam: Long,
+            screenHeight: Int,
         ) {
-            var parentSize = parent_size
-            val child_clipLeft = clipLeftParam - elementWidth
-            val child_clipRight = clipRightParam - elementWidth
-            var child_clipTop = clipTopParam
-            var child_clipBottom = clipBottomParam
-            val child_xoffset = xoffsetParam + elementWidth
+            var currentParentSize = parentSize
+            val childClipLeft = clipLeftParam - elementWidth
+            val childClipRight = clipRightParam - elementWidth
+            var childClipTop = clipTopParam
+            var childClipBottom = clipBottomParam
+            val childXOffset = xoffsetParam + elementWidth
             var yoffset = yoffsetParam
 
             for (c in entries) {
                 val csize = c.sizeForRendering
-                parentSize -= csize
+                currentParentSize -= csize
 
                 val top = yoffset
                 var bottom = top + csize * yscale
 
-                if (child_clipTop > csize) {
-                    child_clipTop -= csize
-                    child_clipBottom -= csize
+                if (childClipTop > csize) {
+                    childClipTop -= csize
+                    childClipBottom -= csize
                     yoffset = bottom
                     continue
                 }
 
-                if (child_clipBottom < 0) {
+                if (childClipBottom < 0) {
                     return
                 }
 
                 val cchildren = c.children
 
-                if (cchildren != null)
+                if (cchildren != null) {
                     paintGPU(
                         c.sizeForRendering, cchildren, rt,
-                        child_xoffset, yoffset, yscale,
-                        child_clipLeft, child_clipRight, child_clipTop, child_clipBottom, screenHeight
+                        childXOffset, yoffset, yscale,
+                        childClipLeft, childClipRight, childClipTop, childClipBottom, screenHeight,
                     )
+                }
 
                 if (bottom - top < 4 && deletedEntry !== c) {
-                    bottom += parentSize * yscale
-                    rt.smallSquare?.draw(xoffsetParam, top, child_xoffset, bottom)
+                    bottom += currentParentSize * yscale
+                    rt.smallSquare?.draw(xoffsetParam, top, childXOffset, bottom)
                     return
                 }
 
@@ -843,7 +882,7 @@ open class FileSystemEntry(
 
                     val isFile = c.children == null
                     val square = if (isFile) rt.fileSquare else rt.dirSquare
-                    square?.draw(xoffsetParam, top, child_xoffset, bottom)
+                    square?.draw(xoffsetParam, top, childXOffset, bottom)
 
                     if (bottom - top > fontSize0 * 2) {
                         var pos = (top + bottom) * 0.5f
@@ -872,65 +911,73 @@ open class FileSystemEntry(
                     }
                 }
 
-                child_clipTop -= csize
-                child_clipBottom -= csize
+                childClipTop -= csize
+                childClipBottom -= csize
                 yoffset = bottom
             }
         }
 
         private fun paint(
-            parent_size: Long, entries: Array<FileSystemEntry>,
-            canvas: Canvas, xoffsetParam: Float, yoffsetParam: Float, yscale: Float,
-            clipLeftParam: Long, clipRightParam: Long, clipTopParam: Long, clipBottomParam: Long,
-            screenHeight: Int
+            parentSize: Long,
+            entries: Array<FileSystemEntry>,
+            canvas: Canvas,
+            xoffsetParam: Float,
+            yoffsetParam: Float,
+            yscale: Float,
+            clipLeftParam: Long,
+            clipRightParam: Long,
+            clipTopParam: Long,
+            clipBottomParam: Long,
+            screenHeight: Int,
         ) {
-            var parentSize = parent_size
-            val child_clipLeft = clipLeftParam - elementWidth
-            val child_clipRight = clipRightParam - elementWidth
-            var child_clipTop = clipTopParam
-            var child_clipBottom = clipBottomParam
-            val child_xoffset = xoffsetParam + elementWidth
+            var currentParentSize = parentSize
+            val childClipLeft = clipLeftParam - elementWidth
+            val childClipRight = clipRightParam - elementWidth
+            var childClipTop = clipTopParam
+            var childClipBottom = clipBottomParam
+            val childXOffset = xoffsetParam + elementWidth
             var yoffset = yoffsetParam
 
             for (c in entries) {
                 val csize = c.sizeForRendering
-                parentSize -= csize
+                currentParentSize -= csize
 
                 val top = yoffset
                 var bottom = top + csize * yscale
 
-                if (child_clipTop > csize) {
-                    child_clipTop -= csize
-                    child_clipBottom -= csize
+                if (childClipTop > csize) {
+                    childClipTop -= csize
+                    childClipBottom -= csize
                     yoffset = bottom
                     continue
                 }
 
-                if (child_clipBottom < 0) {
+                if (childClipBottom < 0) {
                     return
                 }
 
                 val cchildren = c.children
 
-                if (cchildren != null)
+                if (cchildren != null) {
                     paint(
                         c.sizeForRendering, cchildren, canvas,
-                        child_xoffset, yoffset, yscale,
-                        child_clipLeft, child_clipRight, child_clipTop, child_clipBottom, screenHeight
+                        childXOffset, yoffset, yscale,
+                        childClipLeft, childClipRight, childClipTop, childClipBottom, screenHeight,
                     )
+                }
 
                 if (bottom - top < 4 && deletedEntry !== c) {
-                    bottom += parentSize * yscale
-                    canvas.drawRect(xoffsetParam, top, child_xoffset, bottom, fill_bg)
-                    canvas.drawRect(xoffsetParam, top, child_xoffset, bottom, fg_rect)
+                    bottom += currentParentSize * yscale
+                    canvas.drawRect(xoffsetParam, top, childXOffset, bottom, fillBg)
+                    canvas.drawRect(xoffsetParam, top, childXOffset, bottom, fgRect)
                     return
                 }
 
                 if (clipLeftParam < elementWidth) {
                     val fontSize0 = fontSize
 
-                    canvas.drawRect(xoffsetParam, top, child_xoffset, bottom, bg)
-                    canvas.drawRect(xoffsetParam, top, child_xoffset, bottom, fg_rect)
+                    canvas.drawRect(xoffsetParam, top, childXOffset, bottom, bg)
+                    canvas.drawRect(xoffsetParam, top, childXOffset, bottom, fgRect)
 
                     if (bottom - top > fontSize0 * 2) {
                         var pos = (top + bottom) * 0.5f
@@ -965,8 +1012,8 @@ open class FileSystemEntry(
                     }
                 }
 
-                child_clipTop -= csize
-                child_clipBottom -= csize
+                childClipTop -= csize
+                childClipBottom -= csize
                 yoffset = bottom
             }
         }
@@ -978,34 +1025,34 @@ open class FileSystemEntry(
                 if (sz < 1024 * 1024) {
                     if (sz < 1024) {
                         if (sz < 0) sz = 0f
-                        return String.format(n_bytes!!, sz.toInt())
+                        return String.format(nBytes!!, sz.toInt())
                     }
-                    return String.format(n_kilobytes!!, (sz * (1f / 1024)).toInt())
+                    return String.format(nKilobytes!!, (sz * (1f / 1024)).toInt())
                 }
-                return java.lang.String.format(n_megabytes!!, sz * (1f / 1024 / 1024))
+                return java.lang.String.format(nMegabytes!!, sz * (1f / 1024 / 1024))
             }
             if (sz < 1024 * 1024 * 200) {
-                return java.lang.String.format(n_megabytes10!!, sz * (1f / 1024 / 1024))
+                return java.lang.String.format(nMegabytes10!!, sz * (1f / 1024 / 1024))
             }
-            return String.format(n_megabytes100!!, (sz * (1f / 1024 / 1024)).toInt())
+            return String.format(nMegabytes100!!, (sz * (1f / 1024 / 1024)).toInt())
         }
 
-        const val padding: Int = 4
+        const val PADDING: Int = 4
 
         @JvmStatic
         fun setupStrings(context: Context) {
-            if (n_bytes != null) return
-            n_bytes = context.getString(R.string.n_bytes)
-            n_kilobytes = context.getString(R.string.n_kilobytes)
-            n_megabytes = context.getString(R.string.n_megabytes)
-            n_megabytes10 = context.getString(R.string.n_megabytes10)
-            n_megabytes100 = context.getString(R.string.n_megabytes100)
-            n_gigabytes = context.getString(R.string.n_gigabytes)
-            n_gigabytes10 = context.getString(R.string.n_gigabytes10)
-            n_gigabytes100 = context.getString(R.string.n_gigabytes100)
-            dir_name_size_num_dirs = context.getString(R.string.dir_name_size_num_dirs)
-            dir_empty = context.getString(R.string.dir_empty)
-            dir_name_size = context.getString(R.string.dir_name_size)
+            if (nBytes != null) return
+            nBytes = context.getString(R.string.n_bytes)
+            nKilobytes = context.getString(R.string.n_kilobytes)
+            nMegabytes = context.getString(R.string.n_megabytes)
+            nMegabytes10 = context.getString(R.string.n_megabytes10)
+            nMegabytes100 = context.getString(R.string.n_megabytes100)
+            nGigabytes = context.getString(R.string.n_gigabytes)
+            nGigabytes10 = context.getString(R.string.n_gigabytes10)
+            nGigabytes100 = context.getString(R.string.n_gigabytes100)
+            dirNameSizeNumDirs = context.getString(R.string.dir_name_size_num_dirs)
+            dirEmpty = context.getString(R.string.dir_empty)
+            dirNameSize = context.getString(R.string.dir_name_size)
         }
 
         @JvmStatic
@@ -1039,8 +1086,9 @@ open class FileSystemEntry(
     private fun validateRecursive() {
         val childrenArray = children ?: return
         for (child in childrenArray) {
-            if (child.parent !== this)
+            if (child.parent !== this) {
                 throw RuntimeException("corrupted: " + this.path2() + " <> " + child.name)
+            }
             child.validateRecursive()
         }
     }

@@ -12,8 +12,10 @@ import com.google.android.diskusage.ui.FileSystemState.FileSystemView
 import timber.log.Timber
 
 @SuppressLint("ViewConstructor")
-class FileSystemViewGPU(context: Context, var eventHandler: FileSystemState) : SurfaceView(context),
-    FileSystemView, SurfaceHolder.Callback {
+class FileSystemViewGPU(context: Context, var eventHandler: FileSystemState) :
+    SurfaceView(context),
+    FileSystemView,
+    SurfaceHolder.Callback {
     private val thread: AbstractRenderingThread
 
     init {
@@ -59,7 +61,8 @@ class FileSystemViewGPU(context: Context, var eventHandler: FileSystemState) : S
             KeyEvent.KEYCODE_DPAD_RIGHT,
             KeyEvent.KEYCODE_DPAD_UP,
             KeyEvent.KEYCODE_DPAD_DOWN,
-            KeyEvent.KEYCODE_SEARCH -> return true
+            KeyEvent.KEYCODE_SEARCH,
+            -> return true
         }
 
         return super.onKeyDown(keyCode, event)
@@ -71,8 +74,10 @@ class FileSystemViewGPU(context: Context, var eventHandler: FileSystemState) : S
     }
 
     override fun surfaceChanged(
-        holder: SurfaceHolder, format: Int, width: Int,
-        height: Int
+        holder: SurfaceHolder,
+        format: Int,
+        width: Int,
+        height: Int,
     ) {
         Timber.d("Surface changed to: %s x %s", width, height)
         thread.addEvent(thread.SurfaceChangedEvent(holder, width, height))
