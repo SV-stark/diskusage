@@ -1,30 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 
+<!--
  * DiskUsage - displays sdcard usage on android.
  * Copyright (C) 2008 Ivan Volosyuk
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- -->
+ * Licensed under GPL v2 or later.
+-->
 
 <resources>
     <drawable name="transparent">#00000000</drawable>
+
+    <!-- Legacy renderer colors (used by OpenGL drawing) -->
     <color name="almost_white">#CFFFFFFF</color>
     <color name="pie_empty">#ff222222</color>
 
-    <!-- Material 3 base colors -->
-    <color name="color_primary">#6200ea</color>
-    <color name="color_secondary">#03dac6</color>
-    <color name="window_background">#121212</color>
+    <!-- ═══ Material 3 Light Theme ═══ -->
+    <color name="md_theme_light_primary">#4A40C8</color>
+    <color name="md_theme_light_onPrimary">#FFFFFF</color>
+    <color name="md_theme_light_primaryContainer">#E3DFFF</color>
+    <color name="md_theme_light_onPrimaryContainer">#0B006E</color>
+    <color name="md_theme_light_secondary">#009097</color>
+    <color name="md_theme_light_onSecondary">#FFFFFF</color>
+    <color name="md_theme_light_secondaryContainer">#97F2FA</color>
+    <color name="md_theme_light_onSecondaryContainer">#002B2E</color>
+    <color name="md_theme_light_tertiary">#8B4BC4</color>
+    <color name="md_theme_light_onTertiary">#FFFFFF</color>
+    <color name="md_theme_light_tertiaryContainer">#F6D9FF</color>
+    <color name="md_theme_light_onTertiaryContainer">#310059</color>
+    <color name="md_theme_light_error">#BA1A1A</color>
+    <color name="md_theme_light_onError">#FFFFFF</color>
+    <color name="md_theme_light_errorContainer">#FFDAD6</color>
+    <color name="md_theme_light_onErrorContainer">#410002</color>
+    <color name="md_theme_light_background">#FEFBFF</color>
+    <color name="md_theme_light_onBackground">#1B1B1F</color>
+    <color name="md_theme_light_surface">#FEFBFF</color>
+    <color name="md_theme_light_onSurface">#1B1B1F</color>
+    <color name="md_theme_light_surfaceVariant">#E5E0EC</color>
+    <color name="md_theme_light_onSurfaceVariant">#48454E</color>
+    <color name="md_theme_light_outline">#797587</color>
+    <color name="md_theme_light_outlineVariant">#CAC4D0</color>
+    <color name="md_theme_light_scrim">#000000</color>
+    <color name="md_theme_light_inverseSurface">#303033</color>
+    <color name="md_theme_light_inverseOnSurface">#F3EFF4</color>
+    <color name="md_theme_light_inversePrimary">#C4BEFF</color>
+
+    <!-- ═══ Material 3 Dark Theme ═══ -->
+    <color name="md_theme_dark_primary">#C4BEFF</color>
+    <color name="md_theme_dark_onPrimary">#1600A2</color>
+    <color name="md_theme_dark_primaryContainer">#3027B0</color>
+    <color name="md_theme_dark_onPrimaryContainer">#E3DFFF</color>
+    <color name="md_theme_dark_secondary">#4CD9E2</color>
+    <color name="md_theme_dark_onSecondary">#00494D</color>
+    <color name="md_theme_dark_secondaryContainer">#006B70</color>
+    <color name="md_theme_dark_onSecondaryContainer">#97F2FA</color>
+    <color name="md_theme_dark_tertiary">#E6B0FF</color>
+    <color name="md_theme_dark_onTertiary">#52168B</color>
+    <color name="md_theme_dark_tertiaryContainer">#6B30A7</color>
+    <color name="md_theme_dark_onTertiaryContainer">#F6D9FF</color>
+    <color name="md_theme_dark_error">#FFB4AB</color>
+    <color name="md_theme_dark_onError">#690005</color>
+    <color name="md_theme_dark_errorContainer">#93000A</color>
+    <color name="md_theme_dark_onErrorContainer">#FFDAD6</color>
+    <color name="md_theme_dark_background">#1B1B1F</color>
+    <color name="md_theme_dark_onBackground">#E5E1E6</color>
+    <color name="md_theme_dark_surface">#1B1B1F</color>
+    <color name="md_theme_dark_onSurface">#E5E1E6</color>
+    <color name="md_theme_dark_surfaceVariant">#48454E</color>
+    <color name="md_theme_dark_onSurfaceVariant">#CAC4D0</color>
+    <color name="md_theme_dark_outline">#928F9A</color>
+    <color name="md_theme_dark_outlineVariant">#48454E</color>
+    <color name="md_theme_dark_scrim">#000000</color>
+    <color name="md_theme_dark_inverseSurface">#E5E1E6</color>
+    <color name="md_theme_dark_inverseOnSurface">#303033</color>
+    <color name="md_theme_dark_inversePrimary">#4A40C8</color>
+
+    <!-- AMOLED override colors -->
+    <color name="md_theme_amoled_background">#000000</color>
+    <color name="md_theme_amoled_surface">#000000</color>
+
+    <!-- Legacy aliases expected by existing code -->
+    <color name="color_primary">@color/md_theme_light_primary</color>
+    <color name="color_secondary">@color/md_theme_light_secondary</color>
+    <color name="window_background">@color/md_theme_dark_background</color>
 </resources>
